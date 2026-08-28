@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnetic Field Simulator — PhysSandbox</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        sandbox: {
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151',
+                            accent: '#6366f1',
+                            north: '#ef4444',
+                            south: '#3b82f6',
+                            probe: '#10b981'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Custom Scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #111827; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        
+        canvas {
+            touch-action: none;
+            cursor: crosshair;
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .no-select {
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        
+        /* Hide scrollbar for presets menu but allow scrolling */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-sandbox-900 text-gray-100 font-sans h-screen flex flex-col overflow-hidden no-select">
+
+    <!-- Top Navigation Header -->
+    <header class="h-14 bg-sandbox-800 border-b border-gray-800 px-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-indigo-500 to-purple-500 text-white w-9 h-9 rounded-lg flex items-center justify-center font-bold shadow-lg shadow-indigo-500/20 shrink-0">
+                <i class="fa-solid fa-magnet text-lg"></i>
+            </div>
+            <div class="hidden sm:block">
+                <h1 class="font-bold text-base leading-none text-white flex items-center gap-2">
+                    Magnetic Field <span class="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/30">PhysSandbox</span>
+                </h1>
+                <p class="text-[10px] text-gray-400 mt-0.5">3D Vector Field Superposition & Calibrated Scale Lab</p>
+            </div>
+        </div>
+
+        <!-- Presets & Quick Actions -->
+        <div class="flex items-center space-x-2 overflow-hidden">
+            <div class="flex items-center space-x-1 bg-sandbox-900/60 p-1 rounded-lg border border-gray-800 overflow-x-auto hide-scroll whitespace-nowrap max-w-[60vw]">
+                <button onclick="loadPreset('single_magnet')" class="px-2.5 py-1 text-xs font-medium rounded text-gray-300 hover:text-white hover:bg-gray-800 transition">Bar Magnet</button>
+                <button onclick="loadPreset('attracting_magnets')" class="px-2.5 py-1 text-xs font-medium rounded text-gray-300 hover:text-white hover:bg-gray-800 transition">Attracting</button>
+                <button onclick="loadPreset('repelling_magnets')" class="px-2.5 py-1 text-xs font-medium rounded text-gray-300 hover:text-white hover:bg-gray-800 transition">Repelling</button>
+                <button onclick="loadPreset('wire_pair')" class="px-2.5 py-1 text-xs font-medium rounded text-gray-300 hover:text-white hover:bg-gray-800 transition">Wire Pair</button>
+                <button onclick="loadPreset('solenoid')" class="px-2.5 py-1 text-xs font-medium rounded text-gray-300 hover:text-white hover:bg-gray-800 transition">Solenoid</button>
+                <button onclick="loadPreset('coil_side')" class="px-2.5 py-1 text-xs font-medium rounded text-gray-300 hover:text-white hover:bg-gray-800 transition">Coil (Side)</button>
+                <button onclick="loadPreset('coil_top')" class="px-2.5 py-1 text-xs font-medium rounded text-gray-300 hover:text-white hover:bg-gray-800 transition">Coil (Flat)</button>
+            </div>
+
+            <button onclick="clearCanvas()" class="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0">
+                <i class="fa-solid fa-trash-can"></i> <span class="hidden md:inline">Clear</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex relative overflow-hidden">
+        
+        <!-- Left Toolbar / Controls Sidebar -->
+        <aside class="w-[340px] bg-sandbox-800/90 border-r border-gray-800 flex flex-col z-10 shrink-0 overflow-y-auto pb-12">
+            
+            <!-- Tool Modes -->
+            <div class="p-3 border-b border-gray-800 flex-none">
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button id="btn-mode-select" onclick="setInteractionMode('select')" class="tool-btn active p-2 rounded-lg border text-xs font-medium flex items-center gap-2 transition bg-indigo-600 border-indigo-500 text-white">
+                        <i class="fa-solid fa-hand-pointer text-sm"></i> Move & Select
+                    </button>
+                    <button id="btn-mode-probe" onclick="addProbeAtCenter()" class="tool-btn p-2 rounded-lg border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-emerald-400 text-xs font-medium flex items-center gap-2 transition">
+                        <i class="fa-solid fa-crosshair text-sm"></i> Add Sensor
+                    </button>
+                </div>
+            </div>
+
+            <!-- Spatial Scale Calibration Box -->
+            <div class="p-3 border-b border-gray-800 bg-indigo-950/30 flex-none">
+                <label class="text-xs font-semibold text-indigo-400 uppercase tracking-wider block mb-2 flex items-center justify-between">
+                    <span><i class="fa-solid fa-ruler-combined"></i> Spatial Scale</span>
+                    <span id="scale-badge" class="font-mono text-[10px] text-indigo-300 bg-indigo-900/50 px-1.5 py-0.5 rounded border border-indigo-700/50">1 px = 0.01 m</span>
+                </label>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <span class="text-[10px] text-gray-400 block mb-1">Meters per pixel:</span>
+                        <input type="number" id="input-scale-val" min="0.0001" max="100" step="0.005" value="0.01" onchange="updateScaleFromInput()" class="w-full bg-sandbox-900 border border-indigo-800/60 rounded px-2 py-1 text-xs text-indigo-300 font-mono focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-gray-400 block mb-1">Display Unit:</span>
+                        <select id="select-unit" onchange="updateScaleUnit()" class="w-full bg-sandbox-900 border border-indigo-800/60 rounded px-2 py-1 text-xs text-indigo-300 font-mono focus:outline-none focus:border-indigo-500 cursor-pointer">
+                            <option value="m">Meters (m)</option>
+                            <option value="cm" selected>Centimeters (cm)</option>
+                            <option value="mm">Millimeters (mm)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Objects Panel -->
+            <div class="p-3 border-b border-gray-800 flex-none">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Add Field Sources</label>
+                <div class="grid grid-cols-3 gap-1.5 mb-1.5">
+                    <button onclick="addBarMagnet()" title="Bar Magnet" class="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-700 bg-sandbox-700/40 hover:bg-gray-700 text-gray-200 transition">
+                        <div class="w-8 h-3 rounded flex overflow-hidden border border-gray-600 mb-1">
+                            <span class="w-1/2 bg-red-500"></span><span class="w-1/2 bg-blue-500"></span>
+                        </div>
+                        <span class="text-[10px] font-medium leading-tight">Bar Magnet</span>
+                    </button>
+                    <button onclick="addWire(1)" title="Straight Wire (Current In)" class="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-700 bg-sandbox-700/40 hover:bg-gray-700 text-amber-400 transition">
+                        <div class="w-5 h-5 rounded-full border-2 border-amber-400 flex items-center justify-center text-[9px] mb-1">✕</div>
+                        <span class="text-[10px] font-medium leading-tight">Wire (In)</span>
+                    </button>
+                    <button onclick="addWire(-1)" title="Straight Wire (Current Out)" class="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-700 bg-sandbox-700/40 hover:bg-gray-700 text-cyan-400 transition">
+                        <div class="w-5 h-5 rounded-full border-2 border-cyan-400 flex items-center justify-center text-[9px] mb-1">•</div>
+                        <span class="text-[10px] font-medium leading-tight">Wire (Out)</span>
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                    <button onclick="addCoilTop()" title="Circular Wire Loop / Arc (Top View)" class="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-700 bg-sandbox-700/40 hover:bg-gray-700 text-pink-400 transition">
+                        <i class="fa-solid fa-circle-notch text-lg mb-1"></i>
+                        <span class="text-[10px] font-medium leading-tight">Coil Loop (Top)</span>
+                    </button>
+                    <button onclick="addCoilSide()" title="Coil Cross-Section (Side View)" class="flex flex-col items-center justify-center py-2 px-1 rounded-lg border border-gray-700 bg-sandbox-700/40 hover:bg-gray-700 text-purple-400 transition">
+                        <div class="flex items-center gap-0.5 mb-1 h-[18px]">
+                            <div class="w-3 h-3 rounded-full border border-purple-400 flex items-center justify-center text-[6px]">✕</div>
+                            <div class="w-4 h-px bg-purple-400/50"></div>
+                            <div class="w-3 h-3 rounded-full border border-purple-400 flex items-center justify-center text-[6px]">•</div>
+                        </div>
+                        <span class="text-[10px] font-medium leading-tight">Coil (Side)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Field Visualizations -->
+            <div class="p-3 border-b border-gray-800 space-y-3 flex-none">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block">Visuals & Grid</label>
+                <div class="grid grid-cols-2 gap-2">
+                    <label class="flex items-center space-x-2 text-xs text-gray-300 cursor-pointer bg-sandbox-900/60 p-1.5 rounded border border-gray-800">
+                        <input type="checkbox" id="chk-vectors" checked onchange="render()" class="rounded bg-gray-800 border-gray-700 text-indigo-500 focus:ring-0">
+                        <span>3D Vectors</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-xs text-gray-300 cursor-pointer bg-sandbox-900/60 p-1.5 rounded border border-gray-800">
+                        <input type="checkbox" id="chk-streamlines" checked onchange="render()" class="rounded bg-gray-800 border-gray-700 text-indigo-500 focus:ring-0">
+                        <span>Field Lines</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-xs text-gray-300 cursor-pointer bg-sandbox-900/60 p-1.5 rounded border border-gray-800">
+                        <input type="checkbox" id="chk-compass" onchange="render()" class="rounded bg-gray-800 border-gray-700 text-indigo-500 focus:ring-0">
+                        <span>Compass Grid</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-xs text-gray-300 cursor-pointer bg-sandbox-900/60 p-1.5 rounded border border-gray-800">
+                        <input type="checkbox" id="chk-filings" onchange="render()" class="rounded bg-gray-800 border-gray-700 text-indigo-500 focus:ring-0">
+                        <span>Iron Filings</span>
+                    </label>
+                    <label class="flex items-center space-x-2 text-xs text-gray-300 cursor-pointer bg-sandbox-900/60 p-1.5 rounded border border-gray-800 col-span-2">
+                        <input type="checkbox" id="chk-coords" checked onchange="render()" class="rounded bg-gray-800 border-gray-700 text-indigo-500 focus:ring-0">
+                        <span>Show Position Labels</span>
+                    </label>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-[10px] text-gray-400 mb-1 uppercase font-bold">
+                        <span>Grid Density</span>
+                        <span id="lbl-density">16 px</span>
+                    </div>
+                    <input type="range" id="slider-density" min="10" max="30" step="2" value="16" oninput="updateSliders()" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-indigo-500">
+                </div>
+            </div>
+
+            <!-- Selected Object Inspector -->
+            <div id="inspector-panel" class="p-3 border-b border-gray-800 bg-sandbox-900/60 flex-none">
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Properties Inspector</label>
+                <div id="inspector-content" class="text-xs text-gray-500 italic">
+                    Click any object or probe on the canvas to interactively adjust its position, scale dimensions, and parameters.
+                </div>
+            </div>
+
+            <!-- Active Probes & Measurements Readouts -->
+            <div class="p-3 flex flex-col flex-none min-h-[200px]">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-gauge-high"></i> Sensor Readings
+                    </label>
+                </div>
+                <div id="probes-list" class="space-y-2 overflow-y-auto pr-1 flex-1">
+                    <!-- Sensor probe readout cards inserted dynamically -->
+                </div>
+            </div>
+            
+        </aside>
+
+        <!-- Main Canvas Area -->
+        <main class="flex-1 relative bg-slate-950 flex flex-col justify-center items-center">
+            
+            <canvas id="simCanvas" class="w-full h-full block"></canvas>
+
+            <!-- Floating Overlay Tools & Status -->
+            <div class="absolute top-4 left-4 pointer-events-none flex flex-col gap-2">
+                <div class="glass-panel px-3 py-2 rounded-lg text-xs font-mono text-gray-300 flex items-center space-x-4 border border-gray-800 shadow-xl">
+                    <div>Sources: <span id="stat-sources" class="text-indigo-400 font-bold">0</span></div>
+                    <div>Probes: <span id="stat-probes" class="text-emerald-400 font-bold">0</span></div>
+                    <div>Cursor: <span id="stat-cursor" class="text-amber-400 font-bold">(0 px, 0 px)</span></div>
+                </div>
+            </div>
+
+            <!-- Quick Action Floating Toolbar (Top Right) -->
+            <div class="absolute top-4 right-4 glass-panel p-1.5 rounded-lg border border-gray-800 flex items-center space-x-1 shadow-xl z-20">
+                <button onclick="rotateAll()" title="Rotate Objects" class="p-2 hover:bg-gray-800 text-gray-300 hover:text-white rounded-md text-xs transition">
+                    <i class="fa-solid fa-rotate-right text-sm"></i> Rotate Objects
+                </button>
+                <button onclick="flipAllCurrents()" title="Reverse Wire Currents" class="p-2 hover:bg-gray-800 text-gray-300 hover:text-white rounded-md text-xs transition">
+                    <i class="fa-solid fa-right-left text-sm"></i> Flip Currents
+                </button>
+                <div class="h-4 w-px bg-gray-700 my-auto mx-1"></div>
+                <button onclick="addProbeAtCenter()" title="Drop Probe Here" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-xs font-medium transition flex items-center gap-1.5 shadow-lg shadow-emerald-900/30">
+                    <i class="fa-solid fa-crosshair"></i> + Probe
+                </button>
+            </div>
+            
+            <div id="drag-hint" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-none glass-panel px-4 py-2 rounded-full text-xs text-gray-300 border border-indigo-500/30 shadow-2xl flex items-center gap-2">
+                <i class="fa-solid fa-hand-pointer text-indigo-400 animate-bounce"></i>
+                <span>Drag magnets, wires, coils, or <b>Sensor Probes</b> to inspect position & spatial scale</span>
+            </div>
+        </main>
+    </div>
+
+    <!-- Physics & Application Script -->
+    <script>
+        const canvas = document.getElementById('simCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const state = {
+            sources: [],
+            probes: [],
+            selectedId: null,
+            isDragging: false,
+            dragTarget: null,
+            dragOffset: { x: 0, y: 0 },
+            cursorPos: { x: 0, y: 0 },
+            gridDensity: 16,
+            nextId: 1,
+            
+            // Spatial Scale Calibration
+            scaleMetersPerPx: 0.01, // Default: 1 px = 0.01 meters (1 cm per px)
+            scaleUnit: 'cm'        // 'm', 'cm', or 'mm'
+        };
+
+        const COLOR_NORTH = '#ef4444';
+        const COLOR_SOUTH = '#3b82f6';
+        const COLOR_PROBE = '#10b981';
+        let ironFilingsPoints = [];
+
+        function resizeCanvas() {
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            generateIronFilings();
+            render();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        // --- SPATIAL SCALE CONVERSION HELPERS ---
+        function pxToPhysical(px) {
+            const meters = px * state.scaleMetersPerPx;
+            if (state.scaleUnit === 'cm') return meters * 100;
+            if (state.scaleUnit === 'mm') return meters * 1000;
+            return meters; // 'm'
+        }
+
+        function physicalToPx(val) {
+            let meters = val;
+            if (state.scaleUnit === 'cm') meters = val / 100;
+            if (state.scaleUnit === 'mm') meters = val / 1000;
+            return meters / state.scaleMetersPerPx;
+        }
+
+        function formatDistance(px, decimals = 1) {
+            const val = pxToPhysical(px);
+            return `${val.toFixed(decimals)} ${state.scaleUnit}`;
+        }
+
+        function updateScaleFromInput() {
+            const val = parseFloat(document.getElementById('input-scale-val').value);
+            if (!isNaN(val) && val > 0) {
+                state.scaleMetersPerPx = val;
+                updateScaleBadge();
+                render();
+                updateInspectorUI();
+            }
+        }
+
+        function updateScaleUnit() {
+            state.scaleUnit = document.getElementById('select-unit').value;
+            updateScaleBadge();
+            render();
+            updateInspectorUI();
+        }
+
+        function updateScaleBadge() {
+            const badge = document.getElementById('scale-badge');
+            const unitLabel = formatDistance(1, 3);
+            badge.innerText = `1 px = ${unitLabel}`;
+        }
+
+        // --- PHYSICS CORE MATHEMATICS (3D VECTORS) ---
+        function calculateBField(x, y) {
+            let Bx = 0; let By = 0; let Bz = 0;
+
+            for (const s of state.sources) {
+                if (s.type === 'magnet') {
+                    const halfL = s.length / 2;
+                    const rad = (s.angle * Math.PI) / 180;
+                    const Nx = s.x + halfL * Math.cos(rad); const Ny = s.y + halfL * Math.sin(rad);
+                    const Sx = s.x - halfL * Math.cos(rad); const Sy = s.y - halfL * Math.sin(rad);
+
+                    const rN2 = Math.pow(x - Nx, 2) + Math.pow(y - Ny, 2) + 100;
+                    const rS2 = Math.pow(x - Sx, 2) + Math.pow(y - Sy, 2) + 100;
+                    const rN = Math.sqrt(rN2); const rS = Math.sqrt(rS2);
+
+                    const poleStrength = s.strength * 40000;
+                    Bx += poleStrength * ((x - Nx) / (rN * rN2) - (x - Sx) / (rS * rS2));
+                    By += poleStrength * ((y - Ny) / (rN * rN2) - (y - Sy) / (rS * rS2));
+
+                } else if (s.type === 'wire') {
+                    const dx = x - s.x; const dy = y - s.y;
+                    const r2 = dx * dx + dy * dy + 100;
+                    const I = s.current * s.direction * 2500;
+                    Bx += -I * (dy / r2);
+                    By += I * (dx / r2);
+
+                } else if (s.type === 'coil_top') {
+                    const steps = 36;
+                    const radStart = (s.angle * Math.PI) / 180;
+                    const arcRad = (s.arcDegree * Math.PI) / 180;
+                    const dPhi = arcRad / steps;
+                    const I = s.current * s.turns * s.direction * 300;
+                    const dx0 = x - s.x; const dy0 = y - s.y;
+                    const R = s.radius;
+
+                    for(let i = 0; i <= steps; i++) {
+                        if (arcRad === 0) break;
+                        const phi = radStart + i * dPhi;
+                        const cosPhi = Math.cos(phi); const sinPhi = Math.sin(phi);
+                        
+                        const num = R*R - R*dx0*cosPhi - R*dy0*sinPhi;
+                        const den2 = dx0*dx0 + dy0*dy0 + R*R - 2*R*dx0*cosPhi - 2*R*dy0*sinPhi + 80;
+                        const den3 = den2 * Math.sqrt(den2);
+                        
+                        const weight = (i === 0 || i === steps) ? 0.5 : 1.0;
+                        Bz += weight * I * (num / den3) * dPhi;
+                    }
+
+                } else if (s.type === 'coil_side') {
+                    const steps = 36;
+                    const dPhi = (2 * Math.PI) / steps;
+                    const I = s.current * s.turns * s.direction * 300;
+                    const dx0 = x - s.x; const dy0 = y - s.y;
+                    const R = s.radius;
+                    
+                    const rad = (-s.angle * Math.PI) / 180;
+                    const rx = dx0 * Math.cos(rad) - dy0 * Math.sin(rad);
+                    const ry = dx0 * Math.sin(rad) + dy0 * Math.cos(rad);
+
+                    let localBx = 0; let localBy = 0;
+
+                    for(let i = 0; i < steps; i++) {
+                        const phi = i * dPhi;
+                        const cosPhi = Math.cos(phi);
+                        
+                        const numX = R*R - R*ry*cosPhi;
+                        const numY = R*rx*cosPhi;
+                        const den2 = rx*rx + ry*ry + R*R - 2*R*ry*cosPhi + 80;
+                        const den3 = den2 * Math.sqrt(den2);
+                        
+                        localBx += I * (numX / den3) * dPhi;
+                        localBy += I * (numY / den3) * dPhi;
+                    }
+                    
+                    Bx += localBx * Math.cos(-rad) - localBy * Math.sin(-rad);
+                    By += localBx * Math.sin(-rad) + localBy * Math.cos(-rad);
+                }
+            }
+            return { Bx, By, Bz, mag: Math.sqrt(Bx*Bx + By*By + Bz*Bz) };
+        }
+
+        // --- OBJECT CREATION ---
+        function addBarMagnet(x = Math.round(canvas.width / 2), y = Math.round(canvas.height / 2)) {
+            const obj = { id: state.nextId++, type: 'magnet', x, y, angle: 0, length: 100, width: 32, strength: 1.0, name: `Bar Magnet` };
+            state.sources.push(obj); selectObject(obj.id); return obj;
+        }
+
+        function addWire(direction = 1, x = Math.round(canvas.width / 2), y = Math.round(canvas.height / 2)) {
+            const obj = { id: state.nextId++, type: 'wire', x, y, direction, radius: 20, current: 1.0, name: `Wire (${direction > 0 ? 'In' : 'Out'})` };
+            state.sources.push(obj); selectObject(obj.id); return obj;
+        }
+
+        function addCoilTop(x = Math.round(canvas.width / 2), y = Math.round(canvas.height / 2)) {
+            const obj = { id: state.nextId++, type: 'coil_top', x, y, radius: 60, arcDegree: 360, angle: 0, turns: 10, current: 1.0, direction: 1, name: `Flat Coil Loop` };
+            state.sources.push(obj); selectObject(obj.id); return obj;
+        }
+
+        function addCoilSide(x = Math.round(canvas.width / 2), y = Math.round(canvas.height / 2)) {
+            const obj = { id: state.nextId++, type: 'coil_side', x, y, radius: 60, angle: 0, turns: 10, current: 1.0, direction: 1, name: `Coil Cross-Sec` };
+            state.sources.push(obj); selectObject(obj.id); return obj;
+        }
+
+        function addProbe(x = Math.round(canvas.width / 2 + (Math.random() - 0.5) * 100), y = Math.round(canvas.height / 2 + (Math.random() - 0.5) * 100)) {
+            const obj = { id: state.nextId++, type: 'probe', x, y, name: `Probe #${state.probes.length + 1}` };
+            state.probes.push(obj); selectObject(obj.id); return obj;
+        }
+
+        function addProbeAtCenter() { addProbe(canvas.width / 2, canvas.height / 2); }
+
+        function clearCanvas() {
+            state.sources = []; state.probes = []; state.selectedId = null;
+            render(); updateInspectorUI();
+        }
+
+        function loadPreset(preset) {
+            clearCanvas();
+            const cx = Math.round(canvas.width / 2); const cy = Math.round(canvas.height / 2);
+            if (preset === 'single_magnet') {
+                addBarMagnet(cx, cy); addProbe(cx + 120, cy - 40);
+            } else if (preset === 'attracting_magnets') {
+                addBarMagnet(cx - 120, cy).angle = 0; addBarMagnet(cx + 120, cy).angle = 0; addProbe(cx, cy);
+            } else if (preset === 'repelling_magnets') {
+                addBarMagnet(cx - 120, cy).angle = 0; addBarMagnet(cx + 120, cy).angle = 180; addProbe(cx, cy);
+            } else if (preset === 'wire_pair') {
+                addWire(1, cx - 100, cy); addWire(-1, cx + 100, cy); addProbe(cx, cy);
+            } else if (preset === 'solenoid') {
+                for (let i = -3; i <= 3; i++) {
+                    addWire(1, cx + i * 40, cy - 60);
+                    addWire(-1, cx + i * 40, cy + 60);
+                }
+                addProbe(cx, cy);
+            } else if (preset === 'coil_side') {
+                addCoilSide(cx, cy); addProbe(cx, cy);
+            } else if (preset === 'coil_top') {
+                addCoilTop(cx, cy); addProbe(cx, cy);
+            }
+        }
+
+        function rotateAll() {
+            state.sources.forEach(s => {
+                if (s.type === 'magnet' || s.type === 'coil_side') s.angle = (s.angle + 90) % 360;
+                else if (s.type === 'coil_top') s.angle = (s.angle + 45) % 360;
+            });
+            render(); updateInspectorUI();
+        }
+
+        function flipAllCurrents() {
+            state.sources.forEach(s => {
+                if (s.type === 'wire' || s.type === 'coil_top' || s.type === 'coil_side') s.direction *= -1;
+            });
+            render(); updateInspectorUI();
+        }
+
+        function generateIronFilings() {
+            ironFilingsPoints = [];
+            const count = Math.floor((canvas.width * canvas.height) / 600);
+            for (let i = 0; i < count; i++) ironFilingsPoints.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height });
+        }
+
+        // --- RENDERING ENGINE ---
+        function render() {
+            document.getElementById('stat-sources').innerText = state.sources.length;
+            document.getElementById('stat-probes').innerText = state.probes.length;
+            
+            const physX = pxToPhysical(state.cursorPos.x).toFixed(2);
+            const physY = pxToPhysical(state.cursorPos.y).toFixed(2);
+            document.getElementById('stat-cursor').innerText = `(${Math.round(state.cursorPos.x)}px, ${Math.round(state.cursorPos.y)}px) | (${physX} ${state.scaleUnit}, ${physY} ${state.scaleUnit})`;
+
+            ctx.fillStyle = '#0b0f19';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Canvas Grid with Markings
+            ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
+            const gridStep = 50;
+            ctx.beginPath();
+            for (let x = 0; x < canvas.width; x += gridStep) { ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); }
+            for (let y = 0; y < canvas.height; y += gridStep) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
+            ctx.stroke();
+
+            // Grid Coordinate Numbers on axis lines with real scale values
+            ctx.fillStyle = '#475569';
+            ctx.font = '9px monospace';
+            for (let x = gridStep; x < canvas.width; x += gridStep * 2) {
+                const label = `${formatDistance(x, 1)}`;
+                ctx.fillText(label, x + 3, 12);
+            }
+            for (let y = gridStep; y < canvas.height; y += gridStep * 2) {
+                const label = `${formatDistance(y, 1)}`;
+                ctx.fillText(label, 4, y - 3);
+            }
+
+            const showVectors = document.getElementById('chk-vectors').checked;
+            const showStreamlines = document.getElementById('chk-streamlines').checked;
+            const showCompass = document.getElementById('chk-compass').checked;
+            const showFilings = document.getElementById('chk-filings').checked;
+            const showCoords = document.getElementById('chk-coords').checked;
+
+            if (state.sources.length > 0) {
+                if (showStreamlines) drawStreamlines();
+                if (showFilings) drawIronFilings();
+                if (showVectors) drawVectorGrid();
+                if (showCompass) drawCompassGrid();
+            }
+
+            // Draw Sources
+            state.sources.forEach(s => {
+                if (s.type === 'magnet') drawMagnet(s, showCoords);
+                else if (s.type === 'wire') drawWire(s, showCoords);
+                else if (s.type === 'coil_top') drawCoilTop(s, showCoords);
+                else if (s.type === 'coil_side') drawCoilSide(s, showCoords);
+            });
+
+            // Draw Probes
+            state.probes.forEach(p => drawProbe(p, showCoords));
+            updateProbeListUI();
+
+            // Draw On-Canvas Scale Ruler Bar (Bottom-Right Corner)
+            drawCanvasScaleRuler();
+        }
+
+        // Draw Scale Ruler Legend on bottom right of Canvas
+        function drawCanvasScaleRuler() {
+            const rulerPx = 100;
+            const rx = canvas.width - rulerPx - 25;
+            const ry = canvas.height - 25;
+
+            ctx.save();
+            ctx.strokeStyle = '#6366f1';
+            ctx.fillStyle = '#6366f1';
+            ctx.lineWidth = 2;
+
+            // Horizontal Line
+            ctx.beginPath();
+            ctx.moveTo(rx, ry);
+            ctx.lineTo(rx + rulerPx, ry);
+            // End ticks
+            ctx.moveTo(rx, ry - 4); ctx.lineTo(rx, ry + 4);
+            ctx.moveTo(rx + rulerPx, ry - 4); ctx.lineTo(rx + rulerPx, ry + 4);
+            ctx.stroke();
+
+            // Text Label
+            const labelText = `Scale: 100 px = ${formatDistance(100, 2)}`;
+            ctx.font = 'bold 10px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillStyle = '#e0e7ff';
+            ctx.fillText(labelText, rx + rulerPx / 2, ry - 5);
+            ctx.restore();
+        }
+
+        // Draw coordinate tags for objects showing both pixels and real distance units
+        function drawPositionBadge(x, y, text, color) {
+            ctx.save();
+            ctx.font = '10px monospace';
+            const w = ctx.measureText(text).width;
+            
+            ctx.fillStyle = 'rgba(11, 15, 25, 0.85)';
+            ctx.strokeStyle = color; ctx.lineWidth = 1;
+
+            ctx.beginPath(); ctx.roundRect(x - w / 2 - 4, y - 8, w + 8, 16, 3);
+            ctx.fill(); ctx.stroke();
+            ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(text, x, y);
+            ctx.restore();
+        }
+
+        function drawVectorGrid() {
+            const step = parseInt(state.gridDensity) * 2.2;
+            ctx.lineWidth = 1.2;
+
+            for (let x = step / 2; x < canvas.width; x += step) {
+                for (let y = step / 2; y < canvas.height; y += step) {
+                    const field = calculateBField(x, y);
+                    if (field.mag < 0.001) continue;
+
+                    const inPlaneMag = Math.sqrt(field.Bx*field.Bx + field.By*field.By);
+                    const angle = Math.atan2(field.By, field.Bx);
+                    const alpha = Math.min(0.9, 0.15 + (field.mag / (field.mag + 2)) * 0.75);
+                    const hue = Math.max(200 - field.mag * 35, 0);
+                    const color = `hsla(${hue}, 85%, 60%, ${alpha})`;
+
+                    ctx.save();
+                    ctx.translate(x, y);
+
+                    if (Math.abs(field.Bz) > inPlaneMag * 0.3) {
+                        const zRadius = Math.min(step * 0.4, 2 + Math.log10(1 + Math.abs(field.Bz) * 5) * 4);
+                        ctx.strokeStyle = color;
+                        ctx.fillStyle = `hsla(${hue}, 85%, 20%, ${alpha * 0.5})`;
+                        ctx.beginPath(); ctx.arc(0, 0, zRadius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+                        
+                        ctx.lineWidth = 1.5;
+                        if (field.Bz > 0) {
+                            ctx.beginPath(); ctx.arc(0, 0, 1.5, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+                        } else {
+                            const rr = zRadius * 0.6;
+                            ctx.beginPath(); ctx.moveTo(-rr, -rr); ctx.lineTo(rr, rr); ctx.moveTo(rr, -rr); ctx.lineTo(-rr, rr); ctx.stroke();
+                        }
+                    }
+
+                    if (inPlaneMag > 0.05) {
+                        const length = Math.min(step * 0.7, 4 + Math.log10(1 + inPlaneMag * 5) * 8);
+                        ctx.rotate(angle);
+                        ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 1.2;
+                        
+                        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(length, 0); ctx.stroke();
+                        const head = Math.min(4, length * 0.4);
+                        ctx.beginPath(); ctx.moveTo(length, 0); ctx.lineTo(length - head, -head / 1.5); ctx.lineTo(length - head, head / 1.5); ctx.fill();
+                    }
+
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawCompassGrid() {
+            const step = parseInt(state.gridDensity) * 2.8;
+            for (let x = step / 2; x < canvas.width; x += step) {
+                for (let y = step / 2; y < canvas.height; y += step) {
+                    const field = calculateBField(x, y);
+                    const inPlaneMag = Math.sqrt(field.Bx*field.Bx + field.By*field.By);
+                    if (inPlaneMag < 0.1) continue;
+                    
+                    const angle = Math.atan2(field.By, field.Bx);
+                    const radius = Math.min(12, step * 0.35);
+
+                    ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+                    ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
+                    ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke();
+                    ctx.fillStyle = COLOR_NORTH; ctx.beginPath(); ctx.moveTo(radius * 0.8, 0); ctx.lineTo(0, -3); ctx.lineTo(0, 3); ctx.fill();
+                    ctx.fillStyle = COLOR_SOUTH; ctx.beginPath(); ctx.moveTo(-radius * 0.8, 0); ctx.lineTo(0, -3); ctx.lineTo(0, 3); ctx.fill();
+                    ctx.fillStyle = '#f8fafc'; ctx.beginPath(); ctx.arc(0, 0, 1.5, 0, Math.PI * 2); ctx.fill();
+                    ctx.restore();
+                }
+            }
+        }
+
+        function drawStreamlines() {
+            ctx.lineWidth = 1.2;
+            const seedPoints = [];
+            state.sources.forEach(s => {
+                if (s.type === 'magnet') {
+                    const rad = (s.angle * Math.PI) / 180; const halfL = s.length / 2;
+                    const Nx = s.x + halfL * Math.cos(rad); const Ny = s.y + halfL * Math.sin(rad);
+                    for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) seedPoints.push({ x: Nx + 12 * Math.cos(a), y: Ny + 12 * Math.sin(a), dir: 1 });
+                } else if (s.type === 'wire') {
+                    for (let r of [25, 55, 90]) {
+                        for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) seedPoints.push({ x: s.x + r * Math.cos(a), y: s.y + r * Math.sin(a), dir: s.direction });
+                    }
+                } else if (s.type === 'coil_side') {
+                    const rad = (s.angle * Math.PI) / 180;
+                    const cosA = Math.cos(rad); const sinA = Math.sin(rad);
+                    const topX = s.x + s.radius * sinA; const topY = s.y - s.radius * cosA;
+                    const botX = s.x - s.radius * sinA; const botY = s.y + s.radius * cosA;
+                    for (let a = 0; a < Math.PI * 2; a += Math.PI / 4) {
+                        seedPoints.push({ x: topX + 15 * Math.cos(a), y: topY + 15 * Math.sin(a), dir: s.direction });
+                        seedPoints.push({ x: botX + 15 * Math.cos(a), y: botY + 15 * Math.sin(a), dir: -s.direction });
+                    }
+                }
+            });
+
+            seedPoints.forEach(pt => {
+                let currX = pt.x; let currY = pt.y;
+                ctx.strokeStyle = 'rgba(251, 191, 36, 0.45)'; ctx.beginPath(); ctx.moveTo(currX, currY);
+                for (let i = 0; i < 120; i++) {
+                    const f1 = calculateBField(currX, currY);
+                    const inPlane1 = Math.sqrt(f1.Bx*f1.Bx + f1.By*f1.By);
+                    if (inPlane1 < 0.01) break;
+
+                    const dirX = (f1.Bx / inPlane1) * pt.dir; const dirY = (f1.By / inPlane1) * pt.dir;
+                    const midX = currX + dirX * 2.5; const midY = currY + dirY * 2.5;
+
+                    const f2 = calculateBField(midX, midY);
+                    const inPlane2 = Math.sqrt(f2.Bx*f2.Bx + f2.By*f2.By);
+                    if (inPlane2 < 0.01) break;
+
+                    currX += (f2.Bx / inPlane2) * pt.dir * 5; currY += (f2.By / inPlane2) * pt.dir * 5;
+                    if (currX < 0 || currX > canvas.width || currY < 0 || currY > canvas.height) break;
+                    ctx.lineTo(currX, currY);
+                }
+                ctx.stroke();
+            });
+        }
+
+        function drawIronFilings() {
+            ctx.fillStyle = 'rgba(203, 213, 225, 0.55)'; const filingLen = 6;
+            ironFilingsPoints.forEach(pt => {
+                const f = calculateBField(pt.x, pt.y);
+                const inPlaneMag = Math.sqrt(f.Bx*f.Bx + f.By*f.By);
+                if (inPlaneMag < 0.02) return;
+                const angle = Math.atan2(f.By, f.Bx);
+                ctx.save(); ctx.translate(pt.x, pt.y); ctx.rotate(angle);
+                ctx.fillRect(-filingLen / 2, -0.75, filingLen, 1.5); ctx.restore();
+            });
+        }
+
+        function drawMagnet(m, showCoords) {
+            const isSelected = state.selectedId === m.id;
+            ctx.save(); ctx.translate(m.x, m.y); ctx.rotate((m.angle * Math.PI) / 180);
+            const halfW = m.length / 2; const halfH = m.width / 2;
+
+            if (isSelected) { ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 4; ctx.strokeRect(-halfW - 4, -halfH - 4, m.length + 8, m.width + 8); }
+            ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 10;
+            ctx.fillStyle = COLOR_NORTH; ctx.beginPath(); ctx.roundRect(0, -halfH, halfW, m.width, [0, 6, 6, 0]); ctx.fill();
+            ctx.fillStyle = COLOR_SOUTH; ctx.beginPath(); ctx.roundRect(-halfW, -halfH, halfW, m.width, [6, 0, 0, 6]); ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText('N', halfW / 2, 0); ctx.fillText('S', -halfW / 2, 0);
+            
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, -halfH); ctx.lineTo(0, halfH); ctx.stroke();
+            ctx.restore();
+
+            if (showCoords || isSelected) {
+                const label = `(${formatDistance(m.x, 2)}, ${formatDistance(m.y, 2)})`;
+                drawPositionBadge(m.x, m.y - m.width / 2 - 14, label, isSelected ? '#818cf8' : '#94a3b8');
+            }
+        }
+
+        function drawWire(w, showCoords) {
+            const isSelected = state.selectedId === w.id;
+            ctx.save(); ctx.translate(w.x, w.y);
+            if (isSelected) { ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, w.radius + 5, 0, Math.PI * 2); ctx.stroke(); }
+            
+            const isIntoScreen = w.direction > 0;
+            const wireColor = isIntoScreen ? '#f59e0b' : '#06b6d4';
+            ctx.fillStyle = '#1e293b'; ctx.strokeStyle = wireColor; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(0, 0, w.radius, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = wireColor; ctx.strokeStyle = wireColor; ctx.lineWidth = 2.5;
+            if (isIntoScreen) {
+                const r = w.radius * 0.45; ctx.beginPath(); ctx.moveTo(-r, -r); ctx.lineTo(r, r); ctx.moveTo(r, -r); ctx.lineTo(-r, r); ctx.stroke();
+            } else {
+                ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+            }
+            ctx.restore();
+
+            if (showCoords || isSelected) {
+                const label = `(${formatDistance(w.x, 2)}, ${formatDistance(w.y, 2)})`;
+                drawPositionBadge(w.x, w.y - w.radius - 14, label, isSelected ? '#818cf8' : '#94a3b8');
+            }
+        }
+
+        function drawCoilTop(c, showCoords) {
+            const isSelected = state.selectedId === c.id;
+            ctx.save(); ctx.translate(c.x, c.y);
+            
+            ctx.fillStyle = isSelected ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.02)';
+            ctx.beginPath(); ctx.arc(0, 0, c.radius, 0, Math.PI*2); ctx.fill();
+
+            if (isSelected) { ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)'; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(0, 0, c.radius, 0, Math.PI*2); ctx.stroke(); }
+
+            const radStart = (c.angle * Math.PI) / 180;
+            const arcRad = (c.arcDegree * Math.PI) / 180;
+            const radEnd = radStart + arcRad;
+
+            ctx.strokeStyle = '#f472b6';
+            ctx.lineWidth = 4 + Math.min(c.turns / 5, 6);
+            ctx.lineCap = 'round';
+            ctx.beginPath(); ctx.arc(0, 0, c.radius, radStart, radEnd); ctx.stroke();
+
+            if (c.arcDegree > 10) {
+                const midAngle = radStart + (arcRad / 2);
+                ctx.rotate(midAngle);
+                ctx.fillStyle = '#fdf2f8';
+                ctx.beginPath();
+                if (c.direction > 0) {
+                    ctx.moveTo(c.radius - 6, -5); ctx.lineTo(c.radius + 6, -5); ctx.lineTo(c.radius, 5);
+                } else {
+                    ctx.moveTo(c.radius - 6, 5); ctx.lineTo(c.radius + 6, 5); ctx.lineTo(c.radius, -5);
+                }
+                ctx.fill();
+            }
+            ctx.restore();
+
+            if (showCoords || isSelected) {
+                const label = `(${formatDistance(c.x, 2)}, ${formatDistance(c.y, 2)})`;
+                drawPositionBadge(c.x, c.y - c.radius - 14, label, isSelected ? '#818cf8' : '#94a3b8');
+            }
+        }
+
+        function drawCoilSide(c, showCoords) {
+            const isSelected = state.selectedId === c.id;
+            ctx.save(); ctx.translate(c.x, c.y); ctx.rotate((c.angle * Math.PI) / 180);
+            
+            ctx.fillStyle = isSelected ? 'rgba(99, 102, 241, 0.1)' : 'rgba(255, 255, 255, 0.02)';
+            ctx.beginPath(); ctx.roundRect(-15, -c.radius, 30, c.radius*2, 4); ctx.fill();
+
+            if (isSelected) {
+                ctx.strokeStyle = 'rgba(99, 102, 241, 0.4)'; ctx.lineWidth = 14; 
+                ctx.beginPath(); ctx.moveTo(0, -c.radius); ctx.lineTo(0, c.radius); ctx.stroke();
+            }
+
+            ctx.strokeStyle = '#a855f7';
+            ctx.lineWidth = 2; ctx.setLineDash([6, 6]);
+            ctx.beginPath(); ctx.moveTo(0, -c.radius); ctx.lineTo(0, c.radius); ctx.stroke();
+            ctx.setLineDash([]);
+
+            const crossSectionRadius = Math.min(8 + c.turns / 4, 16);
+
+            ctx.fillStyle = '#1e293b'; ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.arc(0, -c.radius, crossSectionRadius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, c.radius, crossSectionRadius, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+            ctx.fillStyle = '#a855f7'; ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 1.5;
+            if (c.direction > 0) {
+                ctx.beginPath(); ctx.arc(0, -c.radius, 3, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.moveTo(-4, c.radius-4); ctx.lineTo(4, c.radius+4); ctx.moveTo(4, c.radius-4); ctx.lineTo(-4, c.radius+4); ctx.stroke();
+            } else {
+                ctx.beginPath(); ctx.moveTo(-4, -c.radius-4); ctx.lineTo(4, -c.radius+4); ctx.moveTo(4, -c.radius-4); ctx.lineTo(-4, -c.radius+4); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, c.radius, 3, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+
+            const rad = (c.angle * Math.PI) / 180;
+            const topYOffset = Math.abs(Math.cos(rad) * c.radius) + 14;
+            if (showCoords || isSelected) {
+                const label = `(${formatDistance(c.x, 2)}, ${formatDistance(c.y, 2)})`;
+                drawPositionBadge(c.x, c.y - topYOffset, label, isSelected ? '#818cf8' : '#94a3b8');
+            }
+        }
+
+        function drawProbe(p, showCoords) {
+            const isSelected = state.selectedId === p.id;
+            const field = calculateBField(p.x, p.y);
+            const inPlaneMag = Math.sqrt(field.Bx*field.Bx + field.By*field.By);
+            const angle = Math.atan2(field.By, field.Bx);
+
+            ctx.save(); ctx.translate(p.x, p.y);
+            ctx.strokeStyle = isSelected ? '#ffffff' : COLOR_PROBE; ctx.lineWidth = isSelected ? 2.5 : 1.5;
+            ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.stroke();
+            ctx.fillStyle = COLOR_PROBE; ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+
+            if (inPlaneMag > 0.001) {
+                ctx.rotate(angle); ctx.strokeStyle = '#34d399'; ctx.fillStyle = '#34d399'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(26, 0); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(20, -4); ctx.lineTo(20, 4); ctx.fill(); ctx.rotate(-angle);
+            }
+
+            const readoutText = `${field.mag.toFixed(1)} µT`;
+            ctx.font = 'bold 11px monospace'; const txtWidth = ctx.measureText(readoutText).width;
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.85)'; ctx.strokeStyle = 'rgba(52, 211, 153, 0.5)';
+            ctx.beginPath(); ctx.roundRect(-txtWidth / 2 - 6, 16, txtWidth + 12, 18, 4); ctx.fill(); ctx.stroke();
+            ctx.fillStyle = '#34d399'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(readoutText, 0, 25);
+            ctx.restore();
+
+            if (showCoords || isSelected) {
+                const label = `(${formatDistance(p.x, 2)}, ${formatDistance(p.y, 2)})`;
+                drawPositionBadge(p.x, p.y - 24, label, '#34d399');
+            }
+        }
+
+        // --- INTERACTION & EVENT HANDLERS ---
+        function findObjectAt(x, y) {
+            for (let i = state.probes.length - 1; i >= 0; i--) {
+                const p = state.probes[i]; if (Math.hypot(p.x - x, p.y - y) <= 15) return p;
+            }
+            for (let i = state.sources.length - 1; i >= 0; i--) {
+                const s = state.sources[i];
+                if (s.type === 'wire') { 
+                    if (Math.hypot(s.x - x, s.y - y) <= s.radius + 5) return s; 
+                } else if (s.type === 'magnet') {
+                    const dx = x - s.x; const dy = y - s.y;
+                    const rad = (-s.angle * Math.PI) / 180;
+                    const rx = dx * Math.cos(rad) - dy * Math.sin(rad); const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+                    if (Math.abs(rx) <= s.length / 2 + 5 && Math.abs(ry) <= s.width / 2 + 5) return s;
+                } else if (s.type === 'coil_top') {
+                    if (Math.hypot(s.x - x, s.y - y) <= s.radius + 10) return s;
+                } else if (s.type === 'coil_side') {
+                    const dx = x - s.x; const dy = y - s.y;
+                    const rad = (-s.angle * Math.PI) / 180;
+                    const rx = dx * Math.cos(rad) - dy * Math.sin(rad); const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+                    if (Math.abs(rx) <= 20 && Math.abs(ry) <= s.radius + 15) return s;
+                }
+            }
+            return null;
+        }
+
+        function selectObject(id) { state.selectedId = id; updateInspectorUI(); render(); }
+
+        function handlePointerDown(e) {
+            const rect = canvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+            const target = findObjectAt(x, y);
+            if (target) {
+                state.isDragging = true; state.dragTarget = target; state.dragOffset = { x: x - target.x, y: y - target.y };
+                selectObject(target.id);
+                
+                const hint = document.getElementById('drag-hint');
+                if(hint) hint.style.display = 'none';
+            } else selectObject(null);
+        }
+
+        function handlePointerMove(e) {
+            const rect = canvas.getBoundingClientRect(); const x = e.clientX - rect.left; const y = e.clientY - rect.top;
+            state.cursorPos = { x, y };
+            if (state.isDragging && state.dragTarget) {
+                state.dragTarget.x = Math.round(x - state.dragOffset.x); state.dragTarget.y = Math.round(y - state.dragOffset.y);
+                updateInspectorUI();
+            }
+            render();
+        }
+
+        function handlePointerUp() { state.isDragging = false; state.dragTarget = null; }
+
+        canvas.addEventListener('mousedown', handlePointerDown);
+        canvas.addEventListener('mousemove', handlePointerMove);
+        window.addEventListener('mouseup', handlePointerUp);
+        
+        canvas.addEventListener('touchstart', (e) => { if(e.touches.length===1){ handlePointerDown(e.touches[0]); } });
+        canvas.addEventListener('touchmove', (e) => { if(e.touches.length===1){ handlePointerMove(e.touches[0]); e.preventDefault(); } }, {passive: false});
+        window.addEventListener('touchend', handlePointerUp);
+
+        // --- UI & INSPECTOR CONTROLS ---
+        function updateSliders() {
+            state.gridDensity = document.getElementById('slider-density').value;
+            document.getElementById('lbl-density').innerText = `${state.gridDensity} px`; render();
+        }
+
+        function updateInspectorUI() {
+            const container = document.getElementById('inspector-content');
+            let selectedObj = null;
+            if (state.selectedId) selectedObj = state.sources.find(s => s.id === state.selectedId) || state.probes.find(p => p.id === state.selectedId);
+            if (!selectedObj) { container.innerHTML = `<span class="text-xs text-gray-500 italic">Select an object to inspect.</span>`; return; }
+
+            const physX = pxToPhysical(selectedObj.x).toFixed(2);
+            const physY = pxToPhysical(selectedObj.y).toFixed(2);
+
+            const posHTML = `
+                <div class="bg-sandbox-900/80 p-2 rounded border border-gray-800 space-y-1.5 mb-2">
+                    <div class="flex items-center justify-between text-[10px] uppercase font-bold text-gray-400">
+                        <span>Position</span>
+                        <span class="text-indigo-400 font-mono">(${physX} ${state.scaleUnit}, ${physY} ${state.scaleUnit})</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><span class="text-[9px] text-gray-400">X (px):</span><input type="number" value="${selectedObj.x}" onchange="updateSelectedProperty('x', parseInt(this.value)||0)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs text-amber-400 border border-gray-700"></div>
+                        <div><span class="text-[9px] text-gray-400">Y (px):</span><input type="number" value="${selectedObj.y}" onchange="updateSelectedProperty('y', parseInt(this.value)||0)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs text-amber-400 border border-gray-700"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 pt-1 border-t border-gray-800/60">
+                        <div><span class="text-[9px] text-gray-400">X (${state.scaleUnit}):</span><input type="number" step="0.1" value="${physX}" onchange="updateSelectedProperty('x', Math.round(physicalToPx(parseFloat(this.value)||0)))" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs text-indigo-300 border border-gray-700"></div>
+                        <div><span class="text-[9px] text-gray-400">Y (${state.scaleUnit}):</span><input type="number" step="0.1" value="${physY}" onchange="updateSelectedProperty('y', Math.round(physicalToPx(parseFloat(this.value)||0)))" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs text-indigo-300 border border-gray-700"></div>
+                    </div>
+                </div>
+            `;
+            const headerHTML = `<div class="flex items-center justify-between font-bold text-gray-200 mb-2"><span>${selectedObj.name}</span><button onclick="removeObject(${selectedObj.id})" class="text-red-400 hover:text-red-300"><i class="fa-solid fa-trash"></i></button></div>`;
+
+            if (selectedObj.type === 'magnet') {
+                container.innerHTML = `${headerHTML} ${posHTML}
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Rotation Angle</span><span>${Math.round(selectedObj.angle)}°</span></label><input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedProperty('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Dipole Strength</span><span>${selectedObj.strength.toFixed(1)}</span></label><input type="range" min="0.2" max="3.0" step="0.1" value="${selectedObj.strength}" oninput="updateSelectedProperty('strength', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer">
+                `;
+            } else if (selectedObj.type === 'wire') {
+                container.innerHTML = `${headerHTML} ${posHTML}
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Current (I)</span><span>${selectedObj.current.toFixed(1)} A</span></label><input type="range" min="0.2" max="3.0" step="0.1" value="${selectedObj.current}" oninput="updateSelectedProperty('current', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <button onclick="updateSelectedProperty('direction', selectedObj.direction * -1)" class="w-full py-1 bg-gray-700 hover:bg-gray-600 transition rounded text-[11px] text-gray-200">Flip Current Direction</button>
+                `;
+            } else if (selectedObj.type === 'coil_top') {
+                const rPhys = pxToPhysical(selectedObj.radius).toFixed(2);
+                container.innerHTML = `${headerHTML} ${posHTML}
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Radius (R)</span><span>${Math.round(selectedObj.radius)} px (${rPhys} ${state.scaleUnit})</span></label><input type="range" min="20" max="200" value="${selectedObj.radius}" oninput="updateSelectedProperty('radius', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Start Angle</span><span>${Math.round(selectedObj.angle)}°</span></label><input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedProperty('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Arc Extent (Loop)</span><span>${Math.round(selectedObj.arcDegree)}°</span></label><input type="range" min="10" max="360" value="${selectedObj.arcDegree}" oninput="updateSelectedProperty('arcDegree', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div><span class="text-[9px] text-gray-400">Turns (N):</span><input type="number" min="1" value="${selectedObj.turns}" onchange="updateSelectedProperty('turns', parseInt(this.value)||1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
+                        <div><span class="text-[9px] text-gray-400">Current (I):</span><input type="number" min="0.1" step="0.1" value="${selectedObj.current}" onchange="updateSelectedProperty('current', parseFloat(this.value)||0.1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
+                    </div>
+                    <button onclick="updateSelectedProperty('direction', selectedObj.direction * -1)" class="w-full py-1 bg-gray-700 hover:bg-gray-600 transition rounded text-[11px] text-gray-200">Flip Current Direction</button>
+                `;
+            } else if (selectedObj.type === 'coil_side') {
+                const rPhys = pxToPhysical(selectedObj.radius).toFixed(2);
+                container.innerHTML = `${headerHTML} ${posHTML}
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Radius (R)</span><span>${Math.round(selectedObj.radius)} px (${rPhys} ${state.scaleUnit})</span></label><input type="range" min="20" max="200" value="${selectedObj.radius}" oninput="updateSelectedProperty('radius', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Orientation Angle</span><span>${Math.round(selectedObj.angle)}°</span></label><input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedProperty('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <div class="grid grid-cols-2 gap-2 mb-2">
+                        <div><span class="text-[9px] text-gray-400">Turns (N):</span><input type="number" min="1" value="${selectedObj.turns}" onchange="updateSelectedProperty('turns', parseInt(this.value)||1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
+                        <div><span class="text-[9px] text-gray-400">Current (I):</span><input type="number" min="0.1" step="0.1" value="${selectedObj.current}" onchange="updateSelectedProperty('current', parseFloat(this.value)||0.1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
+                    </div>
+                    <button onclick="updateSelectedProperty('direction', selectedObj.direction * -1)" class="w-full py-1 bg-gray-700 hover:bg-gray-600 transition rounded text-[11px] text-gray-200">Flip Current Direction</button>
+                `;
+            } else if (selectedObj.type === 'probe') {
+                const f = calculateBField(selectedObj.x, selectedObj.y);
+                const aDeg = (Math.atan2(f.By, f.Bx) * 180 / Math.PI).toFixed(1);
+                container.innerHTML = `${headerHTML} ${posHTML}
+                    <div class="grid grid-cols-2 gap-1.5 font-mono text-[10px] bg-sandbox-900 p-2 rounded border border-gray-800">
+                        <div class="col-span-2 text-center text-emerald-400 font-bold mb-1">|B|: ${f.mag.toFixed(2)} µT</div>
+                        <div class="text-gray-300">Bx: ${f.Bx.toFixed(2)}</div>
+                        <div class="text-gray-300">By: ${f.By.toFixed(2)}</div>
+                        <div class="text-pink-400">Bz: ${f.Bz.toFixed(2)}</div>
+                        <div class="text-gray-300">θ (xy): ${aDeg}°</div>
+                    </div>
+                `;
+            }
+        }
+
+        function updateSelectedProperty(prop, value) {
+            if (!state.selectedId) return;
+            const obj = state.sources.find(s => s.id === state.selectedId) || state.probes.find(p => p.id === state.selectedId);
+            if (obj) { obj[prop] = value; render(); updateInspectorUI(); }
+        }
+
+        function removeObject(id) {
+            state.sources = state.sources.filter(s => s.id !== id); state.probes = state.probes.filter(p => p.id !== id);
+            if (state.selectedId === id) state.selectedId = null;
+            render(); updateInspectorUI(); updateProbeListUI();
+        }
+
+        function updateProbeListUI() {
+            const list = document.getElementById('probes-list');
+            if (state.probes.length === 0) { list.innerHTML = `<div class="text-[10px] text-gray-500 italic p-2 border border-dashed border-gray-800 rounded">No active sensors.</div>`; return; }
+
+            let html = '';
+            state.probes.forEach(p => {
+                const f = calculateBField(p.x, p.y); const isSelected = p.id === state.selectedId;
+                const posDist = `(${formatDistance(p.x, 1)}, ${formatDistance(p.y, 1)})`;
+                html += `
+                    <div onclick="selectObject(${p.id})" class="p-2 rounded border transition cursor-pointer ${isSelected ? 'bg-emerald-950/40 border-emerald-500' : 'bg-sandbox-900/60 border-gray-800 hover:border-gray-700'}">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[10px] font-semibold text-emerald-400"><i class="fa-solid fa-crosshair"></i> ${p.name}</span>
+                            <span class="text-[10px] font-mono font-bold text-white">${f.mag.toFixed(1)} µT</span>
+                        </div>
+                        <div class="text-[9px] font-mono text-indigo-300 mb-0.5">Pos: ${posDist}</div>
+                        <div class="flex justify-between items-center text-[9px] font-mono text-gray-400">
+                            <span>x:${f.Bx.toFixed(1)}</span><span>y:${f.By.toFixed(1)}</span><span class="text-pink-400">z:${f.Bz.toFixed(1)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            list.innerHTML = html;
+        }
+
+        function setInteractionMode(mode) {
+            document.getElementById('btn-mode-select').className = mode === 'select' ? 
+                'tool-btn active p-2 rounded-lg border text-xs font-medium flex items-center gap-2 transition bg-indigo-600 border-indigo-500 text-white' : 
+                'tool-btn p-2 rounded-lg border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-2 transition';
+        }
+
+        window.onload = function() { 
+            resizeCanvas(); 
+            updateScaleBadge();
+            loadPreset('single_magnet'); 
+        };
+    </script>
+</body>
+</html>
