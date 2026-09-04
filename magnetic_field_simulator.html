@@ -96,7 +96,6 @@
     <div class="flex-1 flex relative overflow-hidden">
         
         <!-- Left Toolbar / Controls Sidebar -->
-        <!-- pb-12 ensures scrollable area doesn't cut off bottom content -->
         <aside class="w-[340px] bg-sandbox-800/90 border-r border-gray-800 flex flex-col z-10 overflow-y-auto pb-12 relative shadow-2xl">
             
             <!-- Tool Modes -->
@@ -120,7 +119,7 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <span class="text-[10px] text-gray-400 block mb-1">Meters per pixel:</span>
-                        <input type="number" id="input-scale-val" min="0.0001" max="100" step="0.005" value="0.01" onchange="updateScaleFromInput()" class="w-full bg-sandbox-900 border border-indigo-800/60 rounded px-2 py-1 text-xs text-indigo-300 font-mono focus:outline-none focus:border-indigo-500">
+                        <input type="number" id="input-scale-val" min="0.0001" max="100" step="0.005" value="0.01" oninput="updateScaleFromInput()" class="w-full bg-sandbox-900 border border-indigo-800/60 rounded px-2 py-1 text-xs text-indigo-300 font-mono focus:outline-none focus:border-indigo-500">
                     </div>
                     <div>
                         <span class="text-[10px] text-gray-400 block mb-1">Display Unit:</span>
@@ -357,8 +356,7 @@
             badge.innerText = `1 px = ${unitLabel}`;
         }
 
-        // --- PHYSICS CORE MATHEMATICS (TRUE REAL-WORLD EQUATIONS) ---
-        // Vacuum Permeability (T m / A)
+        // --- PHYSICS CORE MATHEMATICS ---
         const MU_0 = 4 * Math.PI * 1e-7; 
 
         function calculateBField(x, y) {
@@ -367,7 +365,6 @@
 
             for (const s of state.sources) {
                 if (s.type === 'magnet') {
-                    // Physical Dipole Moment modeled via Monopoles
                     const halfL_m = (s.length / 2) * scale;
                     const rad = (s.angle * Math.PI) / 180;
                     
@@ -385,7 +382,6 @@
                     const rN2 = dxN*dxN + dyN*dyN + 1e-10; 
                     const rS2 = dxS*dxS + dyS*dyS + 1e-10;
 
-                    // Strength slider (0.1 to 3.0) maps to Ampere-meters.
                     const qm = s.strength * 50; 
                     const k = (MU_0 * qm) / (4 * Math.PI);
 
@@ -393,7 +389,6 @@
                     By += k * (dyN / Math.pow(rN2, 1.5) - dyS / Math.pow(rS2, 1.5));
 
                 } else if (s.type === 'wire') {
-                    // Infinite Straight Wire Cross-Section (Into/Out of Screen)
                     const dx_m = (x - s.x) * scale;
                     const dy_m = (y - s.y) * scale;
                     const r2 = dx_m*dx_m + dy_m*dy_m + 1e-10;
@@ -405,23 +400,19 @@
                     By += k * dx_m;
 
                 } else if (s.type === 'wire_side') {
-                    // Infinite Straight Wire In-Plane (Side View)
                     const dx_m = (x - s.x) * scale;
                     const dy_m = (y - s.y) * scale;
                     const rad = (-s.angle * Math.PI) / 180;
                     
-                    // Local Y distance perpendicular to the wire line
                     const ry_m = dx_m * Math.sin(rad) + dy_m * Math.cos(rad);
                     const r_m = Math.abs(ry_m) + 1e-10;
 
                     const I = s.current * s.direction;
                     const k = (MU_0 * I) / (2 * Math.PI * r_m);
 
-                    // Right hand rule mapped to Canvas +Y (down): Negate to ensure +Bz translates as OUT of screen.
                     Bz -= k * Math.sign(ry_m);
 
                 } else if (s.type === 'coil_top') {
-                    // Flat Circular Loop (Biot-Savart Numerical Integration)
                     const steps = 36;
                     const radStart = (s.angle * Math.PI) / 180;
                     const arcRad = (s.arcDegree * Math.PI) / 180;
@@ -444,11 +435,10 @@
                         const den3 = Math.pow(den2, 1.5);
                         
                         const weight = (i === 0 || i === steps) ? 0.5 : 1.0;
-                        Bz -= weight * k * (num / den3) * dPhi; // Negated to correctly associate +Bz with OUT.
+                        Bz -= weight * k * (num / den3) * dPhi;
                     }
 
                 } else if (s.type === 'coil_side') {
-                    // Cross Section Circular Loop (Biot-Savart Numerical Integration)
                     const steps = 36;
                     const dPhi = (2 * Math.PI) / steps;
                     
@@ -583,7 +573,6 @@
             ctx.fillStyle = '#0b0f19';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Canvas Grid with Markings
             ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 1;
             const gridStep = 50;
             ctx.beginPath();
@@ -591,7 +580,6 @@
             for (let y = 0; y < canvas.height; y += gridStep) { ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); }
             ctx.stroke();
 
-            // Grid Coordinate Numbers on axis lines
             ctx.fillStyle = '#475569';
             ctx.font = '9px monospace';
             for (let x = gridStep; x < canvas.width; x += gridStep * 2) {
@@ -616,7 +604,6 @@
                 if (showCompass) drawCompassGrid();
             }
 
-            // Draw Sources
             state.sources.forEach(s => {
                 if (s.type === 'magnet') drawMagnet(s, showCoords);
                 else if (s.type === 'wire') drawWire(s, showCoords);
@@ -625,11 +612,8 @@
                 else if (s.type === 'coil_side') drawCoilSide(s, showCoords);
             });
 
-            // Draw Probes
             state.probes.forEach(p => drawProbe(p, showCoords));
             updateProbeListUI();
-
-            // Draw On-Canvas Scale Ruler Bar
             drawCanvasScaleRuler();
         }
 
@@ -674,7 +658,7 @@
                 for (let y = step / 2; y < canvas.height; y += step) {
                     const field = calculateBField(x, y);
                     const mag_uT = field.mag * 1e6; 
-                    if (mag_uT < 0.1) continue; // Skip near-zero fields
+                    if (mag_uT < 0.1) continue;
 
                     const inPlaneMag_uT = Math.sqrt(field.Bx*field.Bx + field.By*field.By) * 1e6;
                     const bz_uT = field.Bz * 1e6;
@@ -687,7 +671,6 @@
                     ctx.save();
                     ctx.translate(x, y);
 
-                    // Draw Bz Component (Dots/Crosses)
                     if (Math.abs(bz_uT) > inPlaneMag_uT * 0.3) {
                         const zRadius = Math.min(step * 0.4, 2 + Math.log10(1 + Math.abs(bz_uT)) * 4);
                         ctx.strokeStyle = color;
@@ -703,7 +686,6 @@
                         }
                     }
 
-                    // Draw Bx/By In-Plane Vectors
                     if (inPlaneMag_uT > 0.5) {
                         const length = Math.min(step * 0.7, 4 + Math.log10(1 + inPlaneMag_uT) * 7);
                         ctx.rotate(angle);
@@ -850,7 +832,6 @@
             const isSelected = state.selectedId === w.id;
             ctx.save(); ctx.translate(w.x, w.y); ctx.rotate((w.angle * Math.PI) / 180);
 
-            // Visually span the entire screen to signify "infinite"
             const len = Math.max(canvas.width, canvas.height) * 2.5; 
             
             if (isSelected) {
@@ -859,14 +840,13 @@
                 ctx.beginPath(); ctx.moveTo(-len/2, 0); ctx.lineTo(len/2, 0); ctx.stroke();
             }
 
-            ctx.strokeStyle = '#eab308'; // Amber-500
+            ctx.strokeStyle = '#eab308';
             ctx.lineWidth = 4;
             ctx.beginPath(); ctx.moveTo(-len/2, 0); ctx.lineTo(len/2, 0); ctx.stroke();
 
-            // Periodic arrows along the infinite wire
             ctx.fillStyle = '#eab308';
             for (let i = -16; i <= 16; i++) {
-                if(i === 0) continue; // Keep center clear for grab point/badge
+                if(i === 0) continue;
                 const px = i * 150;
                 ctx.beginPath();
                 if (w.direction > 0) {
@@ -950,7 +930,7 @@
                 ctx.beginPath(); ctx.arc(0, -c.radius, 3, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.moveTo(-4, c.radius-4); ctx.lineTo(4, c.radius+4); ctx.moveTo(4, c.radius-4); ctx.lineTo(-4, c.radius+4); ctx.stroke();
             } else {
-                ctx.beginPath(); ctx.moveTo(-4, -c.radius-4); ctx.lineTo(4, -c.radius+4); ctx.moveTo(4, -c.radius-4); ctx.lineTo(-4, -c.radius+4); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-4, -c.radius-4); ctx.lineTo(3, -c.radius+3); ctx.moveTo(3, -c.radius-3); ctx.lineTo(-3, -c.radius+3); ctx.stroke();
                 ctx.beginPath(); ctx.arc(0, c.radius, 3, 0, Math.PI*2); ctx.fill();
             }
             ctx.restore();
@@ -1007,7 +987,6 @@
                     const dx = x - s.x; const dy = y - s.y;
                     const rad = (-s.angle * Math.PI) / 180;
                     const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
-                    // Click anywhere along its infinite line
                     if (Math.abs(ry) <= 15) return s;
                 } else if (s.type === 'magnet') {
                     const dx = x - s.x; const dy = y - s.y;
@@ -1095,26 +1074,41 @@
 
             if (selectedObj.type === 'magnet') {
                 container.innerHTML = `${headerHTML} ${posHTML}
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Rotation Angle</span><span>${Math.round(selectedObj.angle)}°</span></label><input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedProperty('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Pole Strength</span><span>${selectedObj.strength.toFixed(1)}</span></label><input type="range" min="0.1" max="3.0" step="0.1" value="${selectedObj.strength}" oninput="updateSelectedProperty('strength', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Rotation Angle</span><span id="val-angle">${Math.round(selectedObj.angle)}°</span></label>
+                    <input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedPropertyRealtime('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Pole Strength</span><span id="val-strength">${selectedObj.strength.toFixed(1)}</span></label>
+                    <input type="range" min="0.1" max="3.0" step="0.1" value="${selectedObj.strength}" oninput="updateSelectedPropertyRealtime('strength', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer">
                 `;
             } else if (selectedObj.type === 'wire') {
                 container.innerHTML = `${headerHTML} ${posHTML}
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Current (I)</span><span>${selectedObj.current.toFixed(1)} A</span></label><input type="range" min="0.1" max="5.0" step="0.1" value="${selectedObj.current}" oninput="updateSelectedProperty('current', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Current (I)</span><span id="val-current">${selectedObj.current.toFixed(1)} A</span></label>
+                    <input type="range" min="0.1" max="5.0" step="0.1" value="${selectedObj.current}" oninput="updateSelectedPropertyRealtime('current', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
                     <button onclick="updateSelectedProperty('direction', selectedObj.direction * -1)" class="w-full py-1 bg-gray-700 hover:bg-gray-600 transition rounded text-[11px] text-gray-200">Flip Current Direction</button>
                 `;
             } else if (selectedObj.type === 'wire_side') {
                 container.innerHTML = `${headerHTML} ${posHTML}
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Orientation Angle</span><span>${Math.round(selectedObj.angle)}°</span></label><input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedProperty('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Current (I)</span><span>${selectedObj.current.toFixed(1)} A</span></label><input type="range" min="0.1" max="5.0" step="0.1" value="${selectedObj.current}" oninput="updateSelectedProperty('current', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Orientation Angle</span><span id="val-angle">${Math.round(selectedObj.angle)}°</span></label>
+                    <input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedPropertyRealtime('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Current (I)</span><span id="val-current">${selectedObj.current.toFixed(1)} A</span></label>
+                    <input type="range" min="0.1" max="5.0" step="0.1" value="${selectedObj.current}" oninput="updateSelectedPropertyRealtime('current', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
                     <button onclick="updateSelectedProperty('direction', selectedObj.direction * -1)" class="w-full py-1 bg-gray-700 hover:bg-gray-600 transition rounded text-[11px] text-gray-200">Flip Current Direction</button>
                 `;
             } else if (selectedObj.type === 'coil_top') {
                 const rPhys = pxToPhysical(selectedObj.radius).toFixed(2);
                 container.innerHTML = `${headerHTML} ${posHTML}
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Radius (R)</span><span>${Math.round(selectedObj.radius)} px (${rPhys} ${state.scaleUnit})</span></label><input type="range" min="20" max="300" value="${selectedObj.radius}" oninput="updateSelectedProperty('radius', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Start Angle</span><span>${Math.round(selectedObj.angle)}°</span></label><input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedProperty('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Arc Extent (Loop)</span><span>${Math.round(selectedObj.arcDegree)}°</span></label><input type="range" min="10" max="360" value="${selectedObj.arcDegree}" oninput="updateSelectedProperty('arcDegree', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Radius (R)</span><span id="val-radius">${Math.round(selectedObj.radius)} px (${rPhys} ${state.scaleUnit})</span></label>
+                    <input type="range" min="20" max="300" value="${selectedObj.radius}" oninput="updateSelectedPropertyRealtime('radius', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Start Angle</span><span id="val-angle">${Math.round(selectedObj.angle)}°</span></label>
+                    <input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedPropertyRealtime('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Arc Extent (Loop)</span><span id="val-arcDegree">${Math.round(selectedObj.arcDegree)}°</span></label>
+                    <input type="range" min="10" max="360" value="${selectedObj.arcDegree}" oninput="updateSelectedPropertyRealtime('arcDegree', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
                     <div class="grid grid-cols-2 gap-2 mb-2">
                         <div><span class="text-[9px] text-gray-400">Turns (N):</span><input type="number" min="1" value="${selectedObj.turns}" onchange="updateSelectedProperty('turns', parseInt(this.value)||1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
                         <div><span class="text-[9px] text-gray-400">Current (I):</span><input type="number" min="0.1" step="0.1" value="${selectedObj.current}" onchange="updateSelectedProperty('current', parseFloat(this.value)||0.1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
@@ -1124,8 +1118,12 @@
             } else if (selectedObj.type === 'coil_side') {
                 const rPhys = pxToPhysical(selectedObj.radius).toFixed(2);
                 container.innerHTML = `${headerHTML} ${posHTML}
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Radius (R)</span><span>${Math.round(selectedObj.radius)} px (${rPhys} ${state.scaleUnit})</span></label><input type="range" min="20" max="300" value="${selectedObj.radius}" oninput="updateSelectedProperty('radius', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
-                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Orientation Angle</span><span>${Math.round(selectedObj.angle)}°</span></label><input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedProperty('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Radius (R)</span><span id="val-radius">${Math.round(selectedObj.radius)} px (${rPhys} ${state.scaleUnit})</span></label>
+                    <input type="range" min="20" max="300" value="${selectedObj.radius}" oninput="updateSelectedPropertyRealtime('radius', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
+                    <label class="text-[10px] text-gray-400 flex justify-between"><span>Orientation Angle</span><span id="val-angle">${Math.round(selectedObj.angle)}°</span></label>
+                    <input type="range" min="0" max="360" value="${selectedObj.angle}" oninput="updateSelectedPropertyRealtime('angle', parseFloat(this.value))" class="w-full h-1 bg-gray-700 rounded cursor-pointer mb-2">
+                    
                     <div class="grid grid-cols-2 gap-2 mb-2">
                         <div><span class="text-[9px] text-gray-400">Turns (N):</span><input type="number" min="1" value="${selectedObj.turns}" onchange="updateSelectedProperty('turns', parseInt(this.value)||1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
                         <div><span class="text-[9px] text-gray-400">Current (I):</span><input type="number" min="0.1" step="0.1" value="${selectedObj.current}" onchange="updateSelectedProperty('current', parseFloat(this.value)||0.1)" class="w-full bg-gray-800 rounded px-1.5 py-0.5 text-xs border border-gray-700 text-white"></div>
@@ -1145,6 +1143,31 @@
                         <div class="text-gray-300">θ (xy): ${aDeg}°</div>
                     </div>
                 `;
+            }
+        }
+
+        function updateSelectedPropertyRealtime(prop, value) {
+            if (!state.selectedId) return;
+            const obj = state.sources.find(s => s.id === state.selectedId) || state.probes.find(p => p.id === state.selectedId);
+            if (obj) {
+                obj[prop] = value;
+                
+                // Update specific badge label without re-rendering entire inspector HTML (preserves slider focus/smoothness)
+                const span = document.getElementById(`val-${prop}`);
+                if (span) {
+                    if (prop === 'radius') {
+                        const rPhys = pxToPhysical(value).toFixed(2);
+                        span.innerText = `${Math.round(value)} px (${rPhys} ${state.scaleUnit})`;
+                    } else if (prop === 'angle' || prop === 'arcDegree') {
+                        span.innerText = `${Math.round(value)}°`;
+                    } else if (prop === 'current') {
+                        span.innerText = `${value.toFixed(1)} A`;
+                    } else if (prop === 'strength') {
+                        span.innerText = `${value.toFixed(1)}`;
+                    }
+                }
+                
+                render();
             }
         }
 
@@ -1169,7 +1192,6 @@
                 const f = calculateBField(p.x, p.y); const isSelected = p.id === state.selectedId;
                 const posDist = `(${formatDistance(p.x, 1)}, ${formatDistance(p.y, 1)})`;
                 
-                // Keep the microTesla scaling just for the compact XYZ readouts at the bottom of the card
                 const uTx = (f.Bx*1e6).toFixed(1); const uTy = (f.By*1e6).toFixed(1); const uTz = (f.Bz*1e6).toFixed(1);
 
                 html += `
