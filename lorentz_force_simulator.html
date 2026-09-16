@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lorentz Force Simulator — PhysSandbox</title>
+    <title>Interactive Lorentz Force & Electromagnetism 3D Sandbox</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -47,7 +47,6 @@
 </head>
 <body class="bg-sandbox-900 text-gray-100 font-sans h-screen flex flex-col overflow-hidden no-select">
 
-    <!-- Top Navigation Header -->
     <header class="h-14 bg-sandbox-800 border-b border-gray-800 px-4 flex items-center justify-between shrink-0 z-20 relative">
         <div class="flex items-center space-x-3">
             <div class="bg-gradient-to-tr from-purple-600 to-red-500 text-white w-9 h-9 rounded-lg flex items-center justify-center font-bold shadow-lg shadow-purple-500/20 shrink-0">
@@ -55,13 +54,13 @@
             </div>
             <div>
                 <h1 class="font-bold text-base leading-none text-white flex items-center gap-2">
-                    Lorentz Force <span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded border border-purple-500/30">PhysSandbox 3D</span>
+                    Lorentz Force <span class="text-xs bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded border border-purple-500/30">3D Interactive Sandbox</span>
                 </h1>
-                <p class="text-[10px] text-gray-400 mt-0.5">Electromagnetism Vector Simulation Engine</p>
+                <p class="text-[10px] text-gray-400 mt-0.5">Drag Objects in 3D Space • Volumetric B-Fields • Presets</p>
             </div>
         </div>
 
-        <div class="flex items-center space-x-4 text-xs font-mono">
+        <div class="flex items-center space-x-3 text-xs font-mono">
             <div class="flex items-center gap-2 px-3 py-1 bg-sandbox-900 rounded border border-gray-800">
                 <span class="w-3 h-3 rounded-full bg-blue-500 block"></span> <span class="text-gray-300">Magnetic Field (B)</span>
             </div>
@@ -74,52 +73,54 @@
         </div>
     </header>
 
-    <!-- Main Workspace -->
     <div class="flex-1 flex relative overflow-hidden">
         
-        <!-- Left Toolbar / Controls Sidebar -->
-        <aside class="w-[360px] bg-sandbox-800/90 border-r border-gray-800 flex flex-col z-10 overflow-y-auto relative shadow-2xl shrink-0">
+        <!-- Sidebar Controls -->
+        <aside class="w-[380px] bg-sandbox-800/95 border-r border-gray-800 flex flex-col z-10 overflow-y-auto relative shadow-2xl shrink-0">
             
-            <!-- Simulation Scenarios -->
+            <!-- Simulation Scenarios & Presets -->
             <div class="p-3 border-b border-gray-800">
-                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Simulation Scenario</label>
-                <div class="grid grid-cols-1 gap-2">
-                    <button id="btn-mode-wire" onclick="setMode('wire')" class="mode-btn p-2 rounded-lg border border-purple-500 bg-purple-600/20 text-white text-xs font-medium flex items-center gap-3 transition text-left">
-                        <i class="fa-solid fa-minus text-lg w-5 text-center text-purple-400"></i>
-                        <div>
-                            <div class="font-bold">Wire in B-Field</div>
-                            <div class="text-[9px] font-mono text-gray-300">F = I(L × B)</div>
-                        </div>
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Scenario Presets</label>
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <button onclick="loadPreset('cyclotron')" class="p-2 rounded bg-sandbox-700 hover:bg-gray-700 border border-gray-600 text-left text-xs transition">
+                        <div class="font-bold text-purple-300"><i class="fa-solid fa-circle-notch mr-1"></i> Cyclotron</div>
+                        <div class="text-[9px] text-gray-400">Circular trajectory in uniform B</div>
                     </button>
-                    <button id="btn-mode-charge" onclick="setMode('charge')" class="mode-btn p-2 rounded-lg border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-3 transition text-left">
-                        <i class="fa-solid fa-circle-dot text-lg w-5 text-center text-emerald-400"></i>
-                        <div>
-                            <div class="font-bold">Moving Charge</div>
-                            <div class="text-[9px] font-mono text-gray-400">F = q(v × B)</div>
-                        </div>
+                    <button onclick="loadPreset('selector')" class="p-2 rounded bg-sandbox-700 hover:bg-gray-700 border border-gray-600 text-left text-xs transition">
+                        <div class="font-bold text-emerald-300"><i class="fa-solid fa-crosshairs mr-1"></i> Velocity Selector</div>
+                        <div class="text-[9px] text-gray-400">Straight path with balanced forces</div>
                     </button>
-                    <button id="btn-mode-twowires" onclick="setMode('twowires')" class="mode-btn p-2 rounded-lg border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-3 transition text-left">
-                        <i class="fa-solid fa-pause text-lg w-5 text-center text-amber-400"></i>
-                        <div>
-                            <div class="font-bold">Parallel Wires</div>
-                            <div class="text-[9px] font-mono text-gray-400">Mutual Magnetic Force</div>
-                        </div>
+                    <button onclick="loadPreset('mirror')" class="p-2 rounded bg-sandbox-700 hover:bg-gray-700 border border-gray-600 text-left text-xs transition">
+                        <div class="font-bold text-blue-300"><i class="fa-solid fa-water mr-1"></i> Magnetic Mirror</div>
+                        <div class="text-[9px] text-gray-400">Helical bounce in gradient B</div>
+                    </button>
+                    <button onclick="loadPreset('twowires')" class="p-2 rounded bg-sandbox-700 hover:bg-gray-700 border border-gray-600 text-left text-xs transition">
+                        <div class="font-bold text-amber-300"><i class="fa-solid fa-pause mr-1"></i> Parallel Currents</div>
+                        <div class="text-[9px] text-gray-400">Mutual wire forces</div>
+                    </button>
+                </div>
+                
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2 mt-3">Simulation Mode</label>
+                <div class="grid grid-cols-3 gap-1.5">
+                    <button id="btn-mode-wire" onclick="setMode('wire')" class="mode-btn p-2 rounded border border-purple-500 bg-purple-600/20 text-white text-[11px] font-medium flex flex-col items-center gap-1 transition text-center">
+                        <i class="fa-solid fa-minus text-purple-400"></i> Wire
+                    </button>
+                    <button id="btn-mode-charge" onclick="setMode('charge')" class="mode-btn p-2 rounded border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-gray-300 text-[11px] font-medium flex flex-col items-center gap-1 transition text-center">
+                        <i class="fa-solid fa-circle-dot text-emerald-400"></i> Charge
+                    </button>
+                    <button id="btn-mode-twowires" onclick="setMode('twowires')" class="mode-btn p-2 rounded border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-gray-300 text-[11px] font-medium flex flex-col items-center gap-1 transition text-center">
+                        <i class="fa-solid fa-equals text-amber-400"></i> 2 Wires
                     </button>
                 </div>
             </div>
 
-            <!-- Camera Views -->
+            <!-- Camera Perspectives -->
             <div class="p-3 border-b border-gray-800 bg-sandbox-900/50">
                 <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-2">Camera Perspective</label>
                 <div class="grid grid-cols-3 gap-1.5 mb-1.5">
                     <button onclick="setView('top')" class="py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-[10px] font-bold text-gray-300 transition">Top (+Y)</button>
                     <button onclick="setView('front')" class="py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-[10px] font-bold text-gray-300 transition">Front (+Z)</button>
                     <button onclick="setView('right')" class="py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-[10px] font-bold text-gray-300 transition">Right (+X)</button>
-                </div>
-                <div class="grid grid-cols-3 gap-1.5 mb-2">
-                    <button onclick="setView('bottom')" class="py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-[10px] font-bold text-gray-400 transition">Bottom (-Y)</button>
-                    <button onclick="setView('back')" class="py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-[10px] font-bold text-gray-400 transition">Back (-Z)</button>
-                    <button onclick="setView('left')" class="py-1 bg-gray-800 hover:bg-gray-700 rounded border border-gray-700 text-[10px] font-bold text-gray-400 transition">Left (-X)</button>
                 </div>
                 <button onclick="setView('iso')" class="w-full py-1.5 bg-indigo-600/20 hover:bg-indigo-600/40 rounded border border-indigo-500/50 text-[11px] font-bold text-indigo-300 transition">
                     <i class="fa-solid fa-cube mr-1"></i> 3D Isometric View
@@ -128,25 +129,26 @@
 
             <!-- Parameters Inspector -->
             <div id="inspector-panel" class="p-3 border-b border-gray-800">
-                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-3">Physics Parameters</label>
+                <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-3">Physics & Position Inspector</label>
                 <div id="inspector-content" class="space-y-4">
-                    <!-- Dynamic Content based on Mode -->
+                    <!-- Dynamic Inspector Content -->
                 </div>
             </div>
 
-            <!-- Live Sensor Readouts & Probe -->
+            <!-- Live Sensor Readouts & Info -->
             <div id="readouts-panel" class="p-3 bg-sandbox-900/60 flex-1 space-y-3 text-[10px] font-mono pb-12">
-                <!-- Probe Controller -->
                 <div class="bg-sandbox-900 border border-emerald-900/50 p-2.5 rounded shadow-inner">
-                    <div class="text-emerald-400 font-bold mb-2 uppercase border-b border-emerald-900/50 pb-1 flex items-center gap-1.5"><i class="fa-solid fa-satellite-dish"></i> 3D Sensor Probe</div>
-                    <div class="space-y-2 mb-2">
-                        <div class="flex gap-2">
-                            <div class="flex-1"><span class="text-gray-500 block mb-0.5">Pos X</span><input type="range" min="-15" max="15" step="0.5" id="slider-probeX" value="2" oninput="updateProbe('x', this.value)" class="w-full h-1 bg-gray-700 accent-emerald-500"></div>
-                            <div class="flex-1"><span class="text-gray-500 block mb-0.5">Pos Y</span><input type="range" min="-15" max="15" step="0.5" id="slider-probeY" value="2" oninput="updateProbe('y', this.value)" class="w-full h-1 bg-gray-700 accent-emerald-500"></div>
-                            <div class="flex-1"><span class="text-gray-500 block mb-0.5">Pos Z</span><input type="range" min="-15" max="15" step="0.5" id="slider-probeZ" value="2" oninput="updateProbe('z', this.value)" class="w-full h-1 bg-gray-700 accent-emerald-500"></div>
-                        </div>
+                    <div class="text-emerald-400 font-bold mb-2 uppercase border-b border-emerald-900/50 pb-1 flex items-center justify-between">
+                        <span><i class="fa-solid fa-hand-pointer mr-1"></i> Interactive 3D Dragging</span>
+                        <span class="text-[9px] text-gray-400">Click & Drag Objects</span>
                     </div>
-                    <div class="text-gray-400 flex justify-between"><span>Location:</span><span id="ro-probe-pos" class="text-white"></span></div>
+                    <div class="text-gray-300 mb-1">You can directly click and drag the <span class="text-emerald-400 font-bold">Probe</span>, <span class="text-purple-400 font-bold">Charge</span>, or <span class="text-slate-300 font-bold">Wire</span> inside the 3D scene!</div>
+                </div>
+
+                <!-- Probe Readout -->
+                <div class="bg-sandbox-900 border border-blue-900/50 p-2.5 rounded shadow-inner">
+                    <div class="text-blue-400 font-bold mb-2 uppercase border-b border-blue-900/50 pb-1 flex items-center gap-1.5"><i class="fa-solid fa-satellite-dish"></i> Sensor Probe Readout</div>
+                    <div class="text-gray-400 flex justify-between"><span>Position (x,y,z):</span><span id="ro-probe-pos" class="text-white"></span></div>
                     <div class="text-blue-400 flex justify-between mt-1"><span>B Field Vector:</span><span id="ro-probe-b" class="text-white"></span></div>
                     <div class="text-blue-400 flex justify-between font-bold"><span>|B| Magnitude:</span><span id="ro-probe-bmag" class="text-white"></span></div>
                 </div>
@@ -154,7 +156,8 @@
                 <!-- Charge Readout -->
                 <div id="panel-ro-charge" class="bg-sandbox-900 border border-purple-900/50 p-2.5 rounded shadow-inner" style="display:none;">
                     <div class="text-purple-400 font-bold mb-2 uppercase border-b border-purple-900/50 pb-1 flex items-center gap-1.5"><i class="fa-solid fa-gauge-high"></i> Charge Dynamics</div>
-                    <div class="text-emerald-400 flex justify-between"><span>Velocity:</span><span id="ro-charge-v" class="text-white"></span></div>
+                    <div class="text-gray-400 flex justify-between"><span>Position (x,y,z):</span><span id="ro-charge-pos" class="text-white"></span></div>
+                    <div class="text-emerald-400 flex justify-between mt-1"><span>Velocity:</span><span id="ro-charge-v" class="text-white"></span></div>
                     <div class="text-emerald-400 flex justify-between font-bold"><span>|V| Magnitude:</span><span id="ro-charge-vmag" class="text-white"></span></div>
                     <div class="text-red-400 flex justify-between mt-1"><span>Lorentz Force:</span><span id="ro-charge-f" class="text-white"></span></div>
                     <div class="text-red-400 flex justify-between font-bold"><span>|F| Magnitude:</span><span id="ro-charge-fmag" class="text-white"></span></div>
@@ -163,35 +166,32 @@
                 <!-- Wire Readout -->
                 <div id="panel-ro-wire" class="bg-sandbox-900 border border-red-900/50 p-2.5 rounded shadow-inner" style="display:none;">
                     <div class="text-red-400 font-bold mb-2 uppercase border-b border-red-900/50 pb-1 flex items-center gap-1.5"><i class="fa-solid fa-bolt"></i> Wire Lorentz Force</div>
-                    <div class="text-red-400 flex justify-between"><span>Force Vector:</span><span id="ro-wire-f" class="text-white"></span></div>
+                    <div class="text-gray-400 flex justify-between"><span>Center (x,y,z):</span><span id="ro-wire-pos" class="text-white"></span></div>
+                    <div class="text-red-400 flex justify-between mt-1"><span>Force Vector:</span><span id="ro-wire-f" class="text-white"></span></div>
                     <div class="text-red-400 flex justify-between font-bold"><span>|F| Magnitude:</span><span id="ro-wire-fmag" class="text-white"></span></div>
                 </div>
             </div>
-            
         </aside>
 
-        <!-- Main 3D Canvas Area -->
         <main id="canvas-container" class="flex-1 relative bg-slate-950 flex flex-col justify-center items-center overflow-hidden">
-            <div id="instruction-overlay" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-none glass-panel px-4 py-2 rounded-full text-xs text-gray-300 border border-gray-700 shadow-2xl flex items-center gap-2">
-                <i class="fa-solid fa-mouse text-gray-400"></i>
-                <span>Left Click to Rotate | Right Click to Pan | Scroll to Zoom</span>
+            <div id="instruction-overlay" class="absolute bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-none glass-panel px-4 py-2 rounded-full text-xs text-gray-300 border border-gray-700 shadow-2xl flex items-center gap-2 bg-sandbox-800/80 backdrop-blur">
+                <i class="fa-solid fa-hand text-emerald-400"></i>
+                <span>Left Click & Drag Objects in 3D | Right Click to Pan | Scroll to Zoom</span>
             </div>
         </main>
     </div>
 
-    <!-- Application Script -->
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- MATH HELPERS (Cartesian <-> Spherical) ---
+        // --- MATH HELPERS ---
         function cartesianToSpherical(x, y, z) {
             const mag = Math.sqrt(x*x + y*y + z*z);
-            let theta = 0;
-            let phi = 0;
+            let theta = 0, phi = 0;
             if (mag > 0) {
-                theta = Math.acos(y / mag) * (180 / Math.PI); // Angle from Y axis (0 to 180)
-                phi = Math.atan2(z, x) * (180 / Math.PI);     // Angle in XZ plane from X axis (-180 to 180)
+                theta = Math.acos(y / mag) * (180 / Math.PI);
+                phi = Math.atan2(z, x) * (180 / Math.PI);
             }
             return { mag, theta, phi };
         }
@@ -209,15 +209,15 @@
         const state = {
             mode: 'wire', // 'wire', 'charge', 'twowires'
             
-            // External B-Field Cartesian
+            // External B-Field Cartesian & Spherical
             Bx: 0.0, By: 1.0, Bz: 0.0,
-            // External B-Field Spherical
             Bmag: 1.0, Btheta: 0, Bphi: 0,
             
-            // Mode: Wire
+            // Wire Mode
             wireCurrent: 5.0,
+            wirePos: new THREE.Vector3(0, 0, 0),
             
-            // Mode: Charge
+            // Charge Mode
             q: 1.0,
             chargeVx: 5.0, chargeVy: 0.0, chargeVz: 0.0,
             chargeVmag: 5.0, chargeVtheta: 90, chargeVphi: 0,
@@ -226,12 +226,12 @@
             isPlaying: false,
             trailPoints: [],
             
-            // Mode: Two Wires
+            // Two Wires Mode
             i1: 5.0,
             i2: -5.0,
             distance: 4.0,
 
-            // Probe
+            // Probe Position
             probePos: new THREE.Vector3(2, 2, 2)
         };
 
@@ -240,16 +240,16 @@
         const initVelSph = cartesianToSpherical(state.chargeVx, state.chargeVy, state.chargeVz);
         state.chargeVmag = initVelSph.mag; state.chargeVtheta = initVelSph.theta; state.chargeVphi = initVelSph.phi;
 
-        // --- COLORS ---
+        // Colors
         const COLOR_B = 0x3b82f6; // Blue
         const COLOR_V = 0x10b981; // Green
         const COLOR_F = 0xef4444; // Red
         const COLOR_WIRE = 0x94a3b8; // Slate
-        const COLOR_POS = 0xef4444; // Positive Charge (Red)
-        const COLOR_NEG = 0x3b82f6; // Negative Charge (Blue)
-        const COLOR_NEU = 0x9ca3af; // Neutral Charge (Gray)
+        const COLOR_POS = 0xef4444; // Positive Charge
+        const COLOR_NEG = 0x3b82f6; // Negative Charge
+        const COLOR_NEU = 0x9ca3af; // Neutral
 
-        // --- THREE.JS SETUP ---
+        // --- THREE.JS INITIALIZATION ---
         const container = document.getElementById('canvas-container');
         const scene = new THREE.Scene();
         scene.background = new THREE.Color('#0b0f19');
@@ -267,8 +267,7 @@
         controls.dampingFactor = 0.05;
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-        scene.add(ambientLight);
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(10, 20, 10);
         scene.add(dirLight);
@@ -277,140 +276,86 @@
         const gridHelper = new THREE.GridHelper(40, 40, 0x334155, 0x1e293b);
         gridHelper.position.y = -5;
         scene.add(gridHelper);
-        const axesHelper = new THREE.AxesHelper(3);
-        axesHelper.position.y = -4.9;
-        scene.add(axesHelper);
+        scene.add(new THREE.AxesHelper(3));
 
-        // Probe Mesh Setup
-        const probeGeo = new THREE.SphereGeometry(0.4, 8, 8);
-        const probeMat = new THREE.MeshBasicMaterial({ color: 0x10b981, wireframe: true });
+        // --- DRAGGING SYSTEM (Raycasting) ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let draggedObject = null; // 'probe', 'charge', 'wire'
+        const dragPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const planeIntersection = new THREE.Vector3();
+
+        // --- SCENE OBJECTS & VOLUMETRIC B-FIELD GRID ---
+        const dynamicObjects = new THREE.Group();
+        scene.add(dynamicObjects);
+        const bFieldGridGroup = new THREE.Group();
+        scene.add(bFieldGridGroup);
+
+        // Probe Mesh
+        const probeGeo = new THREE.SphereGeometry(0.4, 16, 16);
+        const probeMat = new THREE.MeshPhongMaterial({ color: 0x10b981, shininess: 80, emissive: 0x054f31 });
         const probeMesh = new THREE.Mesh(probeGeo, probeMat);
         scene.add(probeMesh);
 
-        // Resize handler
-        window.addEventListener('resize', () => {
-            camera.aspect = container.clientWidth / container.clientHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(container.clientWidth, container.clientHeight);
-        });
-
-        // --- SCENE OBJECTS ---
-        const dynamicObjects = new THREE.Group();
-        scene.add(dynamicObjects);
-
-        const wireMat = new THREE.MeshPhongMaterial({ color: COLOR_WIRE });
-        const wireGeo = new THREE.CylinderGeometry(0.2, 0.2, 20, 16);
+        // Wire Mesh
+        const wireMat = new THREE.MeshPhongMaterial({ color: COLOR_WIRE, shininess: 100 });
+        const wireGeo = new THREE.CylinderGeometry(0.25, 0.25, 20, 16);
         wireGeo.rotateZ(Math.PI / 2);
+        let wireMesh = new THREE.Mesh(wireGeo, wireMat);
+        dynamicObjects.add(wireMesh);
 
-        const chargeMat = new THREE.MeshPhongMaterial({ color: COLOR_POS });
-        const chargeGeo = new THREE.SphereGeometry(0.5, 32, 32);
-        
+        // Charge Mesh
+        const chargeGeo = new THREE.SphereGeometry(0.6, 32, 32);
+        const chargeMat = new THREE.MeshPhongMaterial({ color: COLOR_POS, shininess: 100 });
         let chargeMesh = null;
         let trailLine = null;
         let arrows = [];
 
-        function clearDynamicScene() {
-            while(dynamicObjects.children.length > 0){ 
-                dynamicObjects.remove(dynamicObjects.children[0]); 
+        // --- BUILD VOLUMETRIC 3D B-FIELD GRID ---
+        function updateVolumetricBFieldGrid() {
+            while(bFieldGridGroup.children.length > 0) {
+                bFieldGridGroup.remove(bFieldGridGroup.children[0]);
             }
-            arrows = []; chargeMesh = null; trailLine = null;
-        }
 
-        // --- SCENARIO BUILDERS ---
-        function drawExternalBFieldGrid(bVec) {
-            if (bVec.length() < 0.01) return;
-            const dir = bVec.clone().normalize();
-            const len = Math.max(1, bVec.length() * 2);
-            for(let x = -8; x <= 8; x+=4) {
-                for(let z = -8; z <= 8; z+=4) {
-                    const origin = new THREE.Vector3(x, -3, z);
-                    const arrow = new THREE.ArrowHelper(dir, origin, len, COLOR_B, 0.4, 0.3);
-                    dynamicObjects.add(arrow);
+            // Create a 3D lattice of magnetic field arrows
+            for (let x = -6; x <= 6; x += 4) {
+                for (let y = -4; y <= 4; y += 4) {
+                    for (let z = -6; z <= 6; z += 4) {
+                        const pos = new THREE.Vector3(x, y, z);
+                        const bVec = getBFieldAt(pos);
+                        const mag = bVec.length();
+                        if (mag > 0.01) {
+                            const dir = bVec.clone().normalize();
+                            const len = Math.min(1.5, Math.max(0.4, mag * 0.8));
+                            const arrow = new THREE.ArrowHelper(dir, pos, len, COLOR_B, 0.3, 0.2);
+                            bFieldGridGroup.add(arrow);
+                        }
+                    }
                 }
             }
         }
 
-        function buildWireScene() {
-            const bVec = new THREE.Vector3(state.Bx, state.By, state.Bz);
-            drawExternalBFieldGrid(bVec);
-
-            const wire = new THREE.Mesh(wireGeo, wireMat);
-            dynamicObjects.add(wire);
-
-            const dirI = new THREE.Vector3(Math.sign(state.wireCurrent) || 1, 0, 0);
-            const lenI = Math.max(1, Math.abs(state.wireCurrent));
-            const arrowI = new THREE.ArrowHelper(dirI, new THREE.Vector3(0, 0, 0), lenI, COLOR_V, 0.5, 0.4);
-            dynamicObjects.add(arrowI);
-
-            const Ivec = new THREE.Vector3(state.wireCurrent, 0, 0);
-            const Fvec = new THREE.Vector3().crossVectors(Ivec, bVec);
-            
-            if (Fvec.length() > 0.01) {
-                const dirF = Fvec.clone().normalize();
-                const arrowF = new THREE.ArrowHelper(dirF, new THREE.Vector3(0,0,0), Math.max(1, Fvec.length()), COLOR_F, 0.8, 0.6);
-                dynamicObjects.add(arrowF);
-            }
-        }
-
-        function buildChargeScene() {
-            const bVec = new THREE.Vector3(state.Bx, state.By, state.Bz);
-            drawExternalBFieldGrid(bVec);
-
-            chargeMesh = new THREE.Mesh(chargeGeo, chargeMat);
-            dynamicObjects.add(chargeMesh);
-
-            const trailGeo = new THREE.BufferGeometry();
-            const trailMat = new THREE.LineBasicMaterial({ color: chargeMat.color.getHex(), transparent: true, opacity: 0.6 });
-            trailLine = new THREE.Line(trailGeo, trailMat);
-            dynamicObjects.add(trailLine);
-
-            const arrowV = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(), 1, COLOR_V, 0.5, 0.4);
-            const arrowF = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), new THREE.Vector3(), 1, COLOR_F, 0.5, 0.4);
-            dynamicObjects.add(arrowV); dynamicObjects.add(arrowF);
-            arrows.push({ type: 'V', obj: arrowV }); arrows.push({ type: 'F', obj: arrowF });
-
-            updateChargeVisuals();
-        }
-
-        function buildTwoWiresScene() {
-            const d = state.distance;
-            const w1z = -d/2; const w2z = d/2;
-
-            const wire1 = new THREE.Mesh(wireGeo, wireMat); wire1.position.z = w1z; dynamicObjects.add(wire1);
-            const wire2 = new THREE.Mesh(wireGeo, wireMat); wire2.position.z = w2z; dynamicObjects.add(wire2);
-
-            const d1 = new THREE.Vector3(Math.sign(state.i1)||1, 0, 0);
-            const d2 = new THREE.Vector3(Math.sign(state.i2)||1, 0, 0);
-            dynamicObjects.add(new THREE.ArrowHelper(d1, new THREE.Vector3(0, 0.5, w1z), Math.abs(state.i1)*0.5, COLOR_V, 0.4, 0.3));
-            dynamicObjects.add(new THREE.ArrowHelper(d2, new THREE.Vector3(0, 0.5, w2z), Math.abs(state.i2)*0.5, COLOR_V, 0.4, 0.3));
-
-            const forceMag = (state.i1 * state.i2) / d; 
-            if(Math.abs(forceMag) > 0.01) {
-                const dir1 = new THREE.Vector3(0, 0, 1 * Math.sign(forceMag));
-                const dir2 = new THREE.Vector3(0, 0, -1 * Math.sign(forceMag));
-                const lenF = Math.max(1, Math.abs(forceMag) * 2);
-                dynamicObjects.add(new THREE.ArrowHelper(dir1, new THREE.Vector3(0, 0, w1z), lenF, COLOR_F, 0.6, 0.4));
-                dynamicObjects.add(new THREE.ArrowHelper(dir2, new THREE.Vector3(0, 0, w2z), lenF, COLOR_F, 0.6, 0.4));
-            }
-
-            const ringGeo = new THREE.RingGeometry(d-0.05, d+0.05, 32);
-            const ringMat = new THREE.MeshBasicMaterial({ color: COLOR_B, side: THREE.DoubleSide, transparent: true, opacity: 0.3 });
-            const ring = new THREE.Mesh(ringGeo, ringMat);
-            ring.rotation.y = Math.PI / 2; ring.position.z = w1z;
-            dynamicObjects.add(ring);
-            
-            const bDirY = Math.sign(state.i1) * -1;
-            if (bDirY !== 0) {
-                dynamicObjects.add(new THREE.ArrowHelper(new THREE.Vector3(0, bDirY, 0), new THREE.Vector3(0, 0, w2z), 2, COLOR_B, 0.5, 0.4));
-            }
-        }
-
-        // --- MATH / PHYSICS ENGINE FOR SENSORS ---
+        // --- MATH / PHYSICS ENGINE FOR B-FIELD ---
         function getBFieldAt(pos) {
             let B = new THREE.Vector3();
             if (state.mode === 'wire' || state.mode === 'charge') {
-                B.set(state.Bx, state.By, state.Bz);
+                if (state.mode === 'wire') {
+                    // Biot-Savart effect from wire positioned at state.wirePos
+                    const rVec = pos.clone().sub(state.wirePos);
+                    const dy = rVec.y;
+                    const dz = rVec.z;
+                    const r2 = dy*dy + dz*dz + 0.1;
+                    const k = (state.wireCurrent * 0.5) / r2;
+                    B.set(0, -dz * k, dy * k);
+                    // Add uniform background B if any
+                    B.add(new THREE.Vector3(state.Bx, state.By, state.Bz));
+                } else {
+                    // Uniform B field plus gradient if mirror preset
+                    B.set(state.Bx, state.By + (state.isMirror ? pos.y * 0.1 : 0), state.Bz);
+                }
             } else if (state.mode === 'twowires') {
+                const w1z = -state.distance/2;
+                const w2z = state.distance/2;
                 const calcWireB = (I, z0) => {
                     const dy = pos.y;
                     const dz = pos.z - z0;
@@ -418,10 +363,82 @@
                     const k = I / r2;
                     return new THREE.Vector3(0, -dz * k, dy * k);
                 };
-                B.add(calcWireB(state.i1, -state.distance/2));
-                B.add(calcWireB(state.i2, state.distance/2));
+                B.add(calcWireB(state.i1, w1z));
+                B.add(calcWireB(state.i2, w2z));
             }
             return B;
+        }
+
+        function clearDynamicScene() {
+            while(dynamicObjects.children.length > 0){ 
+                dynamicObjects.remove(dynamicObjects.children[0]); 
+            }
+            arrows = []; chargeMesh = null; trailLine = null; wireMesh = null;
+        }
+
+        function buildSceneForMode() {
+            clearDynamicScene();
+
+            if (state.mode === 'wire') {
+                wireMesh = new THREE.Mesh(wireGeo, wireMat);
+                wireMesh.position.copy(state.wirePos);
+                dynamicObjects.add(wireMesh);
+
+                const dirI = new THREE.Vector3(Math.sign(state.wireCurrent) || 1, 0, 0);
+                const lenI = Math.max(1, Math.abs(state.wireCurrent) * 0.4);
+                const arrowI = new THREE.ArrowHelper(dirI, state.wirePos.clone(), lenI, COLOR_V, 0.5, 0.4);
+                dynamicObjects.add(arrowI);
+
+                const Ivec = new THREE.Vector3(state.wireCurrent, 0, 0);
+                const bVec = getBFieldAt(state.wirePos);
+                const Fvec = new THREE.Vector3().crossVectors(Ivec, bVec);
+                if (Fvec.length() > 0.01) {
+                    const dirF = Fvec.clone().normalize();
+                    const arrowF = new THREE.ArrowHelper(dirF, state.wirePos.clone(), Math.max(1, Fvec.length() * 0.5), COLOR_F, 0.8, 0.6);
+                    dynamicObjects.add(arrowF);
+                }
+            } 
+            else if (state.mode === 'charge') {
+                chargeMesh = new THREE.Mesh(chargeGeo, chargeMat);
+                chargeMesh.position.copy(state.chargePos);
+                dynamicObjects.add(chargeMesh);
+
+                const trailGeo = new THREE.BufferGeometry();
+                const trailMat = new THREE.LineBasicMaterial({ color: COLOR_POS, transparent: true, opacity: 0.7, linewidth: 2 });
+                trailLine = new THREE.Line(trailGeo, trailMat);
+                dynamicObjects.add(trailLine);
+
+                const arrowV = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), state.chargePos, 1, COLOR_V, 0.5, 0.4);
+                const arrowF = new THREE.ArrowHelper(new THREE.Vector3(1,0,0), state.chargePos, 1, COLOR_F, 0.5, 0.4);
+                dynamicObjects.add(arrowV); dynamicObjects.add(arrowF);
+                arrows.push({ type: 'V', obj: arrowV }); arrows.push({ type: 'F', obj: arrowF });
+
+                updateChargeVisuals();
+            } 
+            else if (state.mode === 'twowires') {
+                const d = state.distance;
+                const w1z = -d/2; const w2z = d/2;
+
+                const wire1 = new THREE.Mesh(wireGeo, wireMat); wire1.position.z = w1z; dynamicObjects.add(wire1);
+                const wire2 = new THREE.Mesh(wireGeo, wireMat); wire2.position.z = w2z; dynamicObjects.add(wire2);
+
+                const d1 = new THREE.Vector3(Math.sign(state.i1)||1, 0, 0);
+                const d2 = new THREE.Vector3(Math.sign(state.i2)||1, 0, 0);
+                dynamicObjects.add(new THREE.ArrowHelper(d1, new THREE.Vector3(0, 0.5, w1z), Math.abs(state.i1)*0.4, COLOR_V, 0.4, 0.3));
+                dynamicObjects.add(new THREE.ArrowHelper(d2, new THREE.Vector3(0, 0.5, w2z), Math.abs(state.i2)*0.4, COLOR_V, 0.4, 0.3));
+
+                const forceMag = (state.i1 * state.i2) / d; 
+                if(Math.abs(forceMag) > 0.01) {
+                    const dir1 = new THREE.Vector3(0, 0, 1 * Math.sign(forceMag));
+                    const dir2 = new THREE.Vector3(0, 0, -1 * Math.sign(forceMag));
+                    const lenF = Math.max(1, Math.abs(forceMag) * 1.5);
+                    dynamicObjects.add(new THREE.ArrowHelper(dir1, new THREE.Vector3(0, 0, w1z), lenF, COLOR_F, 0.6, 0.4));
+                    dynamicObjects.add(new THREE.ArrowHelper(dir2, new THREE.Vector3(0, 0, w2z), lenF, COLOR_F, 0.6, 0.4));
+                }
+            }
+
+            updateVolumetricBFieldGrid();
+            updateUI();
         }
 
         function updateChargeVisuals() {
@@ -432,23 +449,23 @@
             chargeMat.color.setHex(cHex);
             if(trailLine) trailLine.material.color.setHex(cHex);
 
-            const bVec = new THREE.Vector3(state.Bx, state.By, state.Bz);
+            const bVec = getBFieldAt(state.chargePos);
             const fVec = new THREE.Vector3().crossVectors(state.chargeVel, bVec).multiplyScalar(state.q);
 
             arrows.forEach(item => {
                 if (item.type === 'V') {
                     if (state.chargeVel.length() > 0.01) {
-                        item.obj.setDirection(state.chargeVel.clone().normalize());
-                        item.obj.setLength(Math.max(1, state.chargeVel.length() * 0.5));
                         item.obj.position.copy(state.chargePos);
+                        item.obj.setDirection(state.chargeVel.clone().normalize());
+                        item.obj.setLength(Math.max(1, state.chargeVel.length() * 0.4));
                         item.obj.visible = true;
                     } else item.obj.visible = false;
                 }
                 if (item.type === 'F') {
                     if (fVec.length() > 0.01) {
+                        item.obj.position.copy(state.chargePos);
                         item.obj.setDirection(fVec.clone().normalize());
                         item.obj.setLength(Math.max(1, fVec.length() * 0.2));
-                        item.obj.position.copy(state.chargePos);
                         item.obj.visible = true;
                     } else item.obj.visible = false;
                 }
@@ -459,28 +476,31 @@
             }
         }
 
+        // --- ANIMATION & PHYSICS LOOP ---
         function animate() {
             requestAnimationFrame(animate);
 
-            // Physics Step
             if (state.mode === 'charge' && state.isPlaying) {
-                const bVec = new THREE.Vector3(state.Bx, state.By, state.Bz);
+                const bVec = getBFieldAt(state.chargePos);
                 const F = new THREE.Vector3().crossVectors(state.chargeVel, bVec).multiplyScalar(state.q);
                 
                 const dt = 0.016; 
                 state.chargeVel.add(F.multiplyScalar(dt));
                 state.chargePos.add(state.chargeVel.clone().multiplyScalar(dt));
                 
+                // Boundary check
+                if (state.chargePos.length() > 20) {
+                    state.chargePos.set(0,0,0);
+                    state.trailPoints = [];
+                }
+
                 state.trailPoints.push(state.chargePos.clone());
-                if(state.trailPoints.length > 200) state.trailPoints.shift();
+                if(state.trailPoints.length > 250) state.trailPoints.shift();
 
                 updateChargeVisuals();
             }
 
-            // Sync Probe Position
             probeMesh.position.copy(state.probePos);
-
-            // Update UI Sensor Readouts
             updateLiveReadouts();
 
             controls.update();
@@ -488,23 +508,22 @@
         }
 
         function updateLiveReadouts() {
-            // PROBE READOUT
+            // Probe
             const pb = getBFieldAt(state.probePos);
             document.getElementById('ro-probe-pos').innerText = `(${state.probePos.x.toFixed(1)}, ${state.probePos.y.toFixed(1)}, ${state.probePos.z.toFixed(1)})`;
             document.getElementById('ro-probe-b').innerText = `[${pb.x.toFixed(2)}, ${pb.y.toFixed(2)}, ${pb.z.toFixed(2)}]`;
             document.getElementById('ro-probe-bmag').innerText = `${pb.length().toFixed(2)} T`;
 
-            // DYNAMIC MODE READOUTS
+            // Panels
             if (state.mode === 'charge') {
                 document.getElementById('panel-ro-charge').style.display = 'block';
                 document.getElementById('panel-ro-wire').style.display = 'none';
-                
-                const bVec = new THREE.Vector3(state.Bx, state.By, state.Bz);
-                const F = new THREE.Vector3().crossVectors(state.chargeVel, bVec).multiplyScalar(state.q);
-                const V = state.chargeVel;
 
-                document.getElementById('ro-charge-v').innerText = `[${V.x.toFixed(2)}, ${V.y.toFixed(2)}, ${V.z.toFixed(2)}]`;
-                document.getElementById('ro-charge-vmag').innerText = `${V.length().toFixed(2)} m/s`;
+                const bVec = getBFieldAt(state.chargePos);
+                const F = new THREE.Vector3().crossVectors(state.chargeVel, bVec).multiplyScalar(state.q);
+                document.getElementById('ro-charge-pos').innerText = `(${state.chargePos.x.toFixed(1)}, ${state.chargePos.y.toFixed(1)}, ${state.chargePos.z.toFixed(1)})`;
+                document.getElementById('ro-charge-v').innerText = `[${state.chargeVel.x.toFixed(2)}, ${state.chargeVel.y.toFixed(2)}, ${state.chargeVel.z.toFixed(2)}]`;
+                document.getElementById('ro-charge-vmag').innerText = `${state.chargeVel.length().toFixed(2)} m/s`;
                 document.getElementById('ro-charge-f').innerText = `[${F.x.toFixed(2)}, ${F.y.toFixed(2)}, ${F.z.toFixed(2)}]`;
                 document.getElementById('ro-charge-fmag').innerText = `${F.length().toFixed(2)} N`;
             } 
@@ -512,11 +531,12 @@
                 document.getElementById('panel-ro-charge').style.display = 'none';
                 document.getElementById('panel-ro-wire').style.display = 'block';
 
-                const L = 20; // Simulated visible length
+                const L = 20;
                 const Ivec = new THREE.Vector3(state.wireCurrent, 0, 0);
-                const B = new THREE.Vector3(state.Bx, state.By, state.Bz);
+                const B = getBFieldAt(state.wirePos);
                 const F = new THREE.Vector3().crossVectors(Ivec, B).multiplyScalar(L);
 
+                document.getElementById('ro-wire-pos').innerText = `(${state.wirePos.x.toFixed(1)}, ${state.wirePos.y.toFixed(1)}, ${state.wirePos.z.toFixed(1)})`;
                 document.getElementById('ro-wire-f').innerText = `[${F.x.toFixed(2)}, ${F.y.toFixed(2)}, ${F.z.toFixed(2)}]`;
                 document.getElementById('ro-wire-fmag').innerText = `${F.length().toFixed(2)} N`;
             } else {
@@ -527,230 +547,259 @@
 
         animate();
 
-        // --- UI BINDINGS ---
-        window.updateProbe = (axis, val) => {
-            state.probePos[axis] = parseFloat(val);
-        }
+        // --- MOUSE INTERACTION & DRAGGING (RAYCASTING) ---
+        renderer.domElement.addEventListener('pointerdown', (e) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            
+            const intersects = raycaster.intersectObjects([
+                probeMesh, 
+                chargeMesh || new THREE.Mesh(), 
+                wireMesh || new THREE.Mesh()
+            ].filter(m => m.geometry));
+
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                if (hit === probeMesh) draggedObject = 'probe';
+                else if (hit === chargeMesh) draggedObject = 'charge';
+                else if (hit === wireMesh) draggedObject = 'wire';
+
+                if (draggedObject) {
+                    controls.enabled = false; // Disable orbit while dragging object
+                }
+            }
+        });
+
+        renderer.domElement.addEventListener('pointermove', (e) => {
+            if (!draggedObject) return;
+
+            const rect = renderer.domElement.getBoundingClientRect();
+            mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Align drag plane facing camera at object position
+            const objPos = draggedObject === 'probe' ? state.probePos : (draggedObject === 'charge' ? state.chargePos : state.wirePos);
+            dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()).negate(), objPos);
+
+            if (raycaster.ray.intersectPlane(dragPlane, planeIntersection)) {
+                // Clamp within bounds
+                planeIntersection.clamp(new THREE.Vector3(-12, -10, -12), new THREE.Vector3(12, 10, 12));
+                
+                if (draggedObject === 'probe') {
+                    state.probePos.copy(planeIntersection);
+                    syncSliderInputs('probe', state.probePos);
+                } else if (draggedObject === 'charge') {
+                    state.chargePos.copy(planeIntersection);
+                    state.trailPoints = [state.chargePos.clone()];
+                    updateChargeVisuals();
+                    syncSliderInputs('charge', state.chargePos);
+                } else if (draggedObject === 'wire') {
+                    state.wirePos.copy(planeIntersection);
+                    if(wireMesh) wireMesh.position.copy(state.wirePos);
+                    buildSceneForMode();
+                    syncSliderInputs('wire', state.wirePos);
+                }
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            draggedObject = null;
+            controls.enabled = true;
+        });
+
+        // --- UI & PRESETS ---
+        window.loadPreset = (preset) => {
+            state.isPlaying = false;
+            state.isMirror = false;
+            if (preset === 'cyclotron') {
+                setMode('charge');
+                state.Bx = 0; state.By = 0; state.Bz = 2.0;
+                state.q = 1.0;
+                state.chargePos.set(0, 0, 0);
+                state.chargeVx = 4.0; state.chargeVy = 0; state.chargeVz = 0;
+                state.chargeVel.set(4, 0, 0);
+            } else if (preset === 'selector') {
+                setMode('charge');
+                state.Bx = 0; state.By = 0; state.Bz = 1.5;
+                state.q = 1.0;
+                state.chargePos.set(-5, 0, 0);
+                state.chargeVx = 3.0; state.chargeVy = 0; state.chargeVz = 3.0;
+                state.chargeVel.set(3, 0, 3);
+            } else if (preset === 'mirror') {
+                setMode('charge');
+                state.isMirror = true;
+                state.Bx = 0; state.By = 1.0; state.Bz = 1.0;
+                state.q = 1.0;
+                state.chargePos.set(-4, -2, 0);
+                state.chargeVx = 4.0; state.chargeVy = 3.0; state.chargeVz = 1.0;
+                state.chargeVel.set(4, 3, 1);
+            } else if (preset === 'twowires') {
+                setMode('twowires');
+                state.i1 = 6.0; state.i2 = 6.0; state.distance = 4.0;
+            }
+            buildSceneForMode();
+        };
 
         window.setMode = (mode) => {
             state.mode = mode;
             document.querySelectorAll('.mode-btn').forEach(btn => {
-                btn.className = "mode-btn p-2 rounded-lg border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-gray-300 text-xs font-medium flex items-center gap-3 transition text-left";
+                btn.className = "mode-btn p-2 rounded border border-gray-700 bg-sandbox-700/50 hover:bg-gray-700 text-gray-300 text-[11px] font-medium flex flex-col items-center gap-1 transition text-center";
             });
-            document.getElementById(`btn-mode-${mode}`).className = "mode-btn p-2 rounded-lg border border-purple-500 bg-purple-600/20 text-white text-xs font-medium flex items-center gap-3 transition text-left";
+            document.getElementById(`btn-mode-${mode}`).className = "mode-btn p-2 rounded border border-purple-500 bg-purple-600/20 text-white text-[11px] font-medium flex flex-col items-center gap-1 transition text-center";
 
-            buildUI();
-            
             state.isPlaying = false;
-            state.chargePos.set(0,0,0);
+            state.chargePos.set(0, 0, 0);
             state.chargeVel.set(state.chargeVx, state.chargeVy, state.chargeVz);
             state.trailPoints = [state.chargePos.clone()];
 
-            clearDynamicScene();
-            if (mode === 'wire') buildWireScene();
-            else if (mode === 'charge') buildChargeScene();
-            else if (mode === 'twowires') buildTwoWiresScene();
-
-            window.setView('iso');
+            buildSceneForMode();
         };
 
         window.setView = (view) => {
             const dist = 25;
             switch(view) {
                 case 'top': camera.position.set(0, dist, 0); break;
-                case 'bottom': camera.position.set(0, -dist, 0); break;
                 case 'front': camera.position.set(0, 0, dist); break;
-                case 'back': camera.position.set(0, 0, -dist); break;
                 case 'right': camera.position.set(dist, 0, 0); break;
-                case 'left': camera.position.set(-dist, 0, 0); break;
                 case 'iso': camera.position.set(15, 15, 15); break;
             }
             camera.lookAt(0,0,0);
             controls.target.set(0,0,0);
         };
 
-        window.updateSliderUI = (prop) => {
-            const slider = document.getElementById(`slider-${prop}`);
-            if (slider) slider.value = state[prop];
-            const lbl = document.getElementById(`lbl-${prop}`);
-            if (lbl) {
-                if(prop.includes('theta') || prop.includes('phi')) lbl.innerText = Math.round(state[prop]);
-                else lbl.innerText = state[prop].toFixed(1);
-            }
-        }
-
         window.updateParam = (prop, val) => {
             state[prop] = parseFloat(val);
-            
-            // MATH: Cartesian <-> Spherical Sync for B-Field
-            if (['Bx', 'By', 'Bz'].includes(prop)) {
-                const sph = cartesianToSpherical(state.Bx, state.By, state.Bz);
-                state.Bmag = sph.mag; state.Btheta = sph.theta; state.Bphi = sph.phi;
-                window.updateSliderUI('Bmag'); window.updateSliderUI('Btheta'); window.updateSliderUI('Bphi');
-            } else if (['Bmag', 'Btheta', 'Bphi'].includes(prop)) {
-                const cart = sphericalToCartesian(state.Bmag, state.Btheta, state.Bphi);
-                state.Bx = cart.x; state.By = cart.y; state.Bz = cart.z;
-                window.updateSliderUI('Bx'); window.updateSliderUI('By'); window.updateSliderUI('Bz');
-            }
-
-            // MATH: Cartesian <-> Spherical Sync for Velocity
-            if (['chargeVx', 'chargeVy', 'chargeVz'].includes(prop)) {
-                const sph = cartesianToSpherical(state.chargeVx, state.chargeVy, state.chargeVz);
-                state.chargeVmag = sph.mag; state.chargeVtheta = sph.theta; state.chargeVphi = sph.phi;
-                window.updateSliderUI('chargeVmag'); window.updateSliderUI('chargeVtheta'); window.updateSliderUI('chargeVphi');
-            } else if (['chargeVmag', 'chargeVtheta', 'chargeVphi'].includes(prop)) {
-                const cart = sphericalToCartesian(state.chargeVmag, state.chargeVtheta, state.chargeVphi);
-                state.chargeVx = cart.x; state.chargeVy = cart.y; state.chargeVz = cart.z;
-                window.updateSliderUI('chargeVx'); window.updateSliderUI('chargeVy'); window.updateSliderUI('chargeVz');
-            }
-
-            // Update singular label
             const lbl = document.getElementById(`lbl-${prop}`);
-            if (lbl) {
-                if (prop === 'q') lbl.innerText = `${state.q > 0 ? '+':''}${state.q} C`;
-                else if (prop.includes('theta') || prop.includes('phi')) lbl.innerText = Math.round(state[prop]);
-                else lbl.innerText = state[prop].toFixed(1);
+            if (lbl) lbl.innerText = parseFloat(val).toFixed(1);
+
+            if (prop.startsWith('probe')) {
+                state.probePos[prop.replace('probe','').toLowerCase()] = parseFloat(val);
+            } else if (prop.startsWith('wireCoord')) {
+                const axis = prop.slice(-1).toLowerCase();
+                state.wirePos[axis] = parseFloat(val);
+                if(wireMesh) wireMesh.position.copy(state.wirePos);
+            } else if (prop.startsWith('chargeCoord')) {
+                const axis = prop.slice(-1).toLowerCase();
+                state.chargePos[axis] = parseFloat(val);
+                updateChargeVisuals();
+            } else if (['Bx', 'By', 'Bz'].includes(prop)) {
+                updateVolumetricBFieldGrid();
             }
 
-            // Rebuild static elements visually
-            if (state.mode === 'wire') { clearDynamicScene(); buildWireScene(); }
-            if (state.mode === 'twowires') { clearDynamicScene(); buildTwoWiresScene(); }
-            
-            if (state.mode === 'charge') {
-                if (!state.isPlaying && prop.includes('charge')) {
-                    state.chargeVel.set(state.chargeVx, state.chargeVy, state.chargeVz);
-                }
-                if (prop.includes('B')) {
-                    const tempPos = state.chargePos.clone();
-                    const tempVel = state.chargeVel.clone();
-                    const tempTrail = [...state.trailPoints];
-                    clearDynamicScene(); buildChargeScene();
-                    state.chargePos.copy(tempPos); state.chargeVel.copy(tempVel); state.trailPoints = tempTrail;
-                }
-                updateChargeVisuals();
+            if (state.mode === 'wire' || state.mode === 'twowires' || prop.startsWith('Bx') || prop.startsWith('By') || prop.startsWith('Bz')) {
+                updateVolumetricBFieldGrid();
             }
         };
 
+        function syncSliderInputs(type, vec) {
+            ['X', 'Y', 'Z'].forEach(axis => {
+                const el = document.getElementById(`slider-${type}Coord${axis}`);
+                const lbl = document.getElementById(`lbl-${type}Coord${axis}`);
+                const val = vec[axis.toLowerCase()];
+                if (el) el.value = val;
+                if (lbl) lbl.innerText = val.toFixed(1);
+            });
+        }
+
         window.togglePlay = () => {
             state.isPlaying = !state.isPlaying;
-            document.getElementById('btn-play').innerHTML = state.isPlaying ? '<i class="fa-solid fa-pause"></i> Pause' : '<i class="fa-solid fa-play"></i> Play';
-            document.getElementById('btn-play').className = state.isPlaying ? 
-                'w-full py-2 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold transition flex items-center justify-center gap-2' : 
-                'w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded font-bold transition flex items-center justify-center gap-2';
+            const btn = document.getElementById('btn-play');
+            btn.innerHTML = state.isPlaying ? '<i class="fa-solid fa-pause mr-1"></i> Pause' : '<i class="fa-solid fa-play mr-1"></i> Play';
+            btn.className = state.isPlaying ? 
+                'flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded font-bold transition flex items-center justify-center text-xs' : 
+                'flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded font-bold transition flex items-center justify-center text-xs';
         };
 
         window.resetCharge = () => {
             state.isPlaying = false;
-            document.getElementById('btn-play').innerHTML = '<i class="fa-solid fa-play"></i> Play';
-            document.getElementById('btn-play').className = 'w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded font-bold transition flex items-center justify-center gap-2';
-            
             state.chargePos.set(0,0,0);
             state.chargeVel.set(state.chargeVx, state.chargeVy, state.chargeVz);
             state.trailPoints = [state.chargePos.clone()];
             updateChargeVisuals();
+            syncSliderInputs('charge', state.chargePos);
         };
 
-        function getBFieldHTML() {
-            return `
+        function updateUI() {
+            const panel = document.getElementById('inspector-content');
+            let html = `
                 <div class="bg-sandbox-900 p-2.5 rounded border border-blue-900/40">
                     <label class="text-[10px] uppercase font-bold text-blue-400 block mb-2">Magnetic Field Vector (B)</label>
-                    <div class="space-y-1 mb-3">
-                        <div class="text-[9px] text-gray-500 font-bold uppercase mb-1">Cartesian (X, Y, Z)</div>
-                        <div class="flex gap-2">
-                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Bx</span><span id="lbl-Bx">${state.Bx.toFixed(1)}</span></div><input type="range" min="-5" max="5" step="0.1" value="${state.Bx}" id="slider-Bx" oninput="updateParam('Bx', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-500"></div>
-                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>By</span><span id="lbl-By">${state.By.toFixed(1)}</span></div><input type="range" min="-5" max="5" step="0.1" value="${state.By}" id="slider-By" oninput="updateParam('By', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-500"></div>
-                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Bz</span><span id="lbl-Bz">${state.Bz.toFixed(1)}</span></div><input type="range" min="-5" max="5" step="0.1" value="${state.Bz}" id="slider-Bz" oninput="updateParam('Bz', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-500"></div>
-                        </div>
-                    </div>
-                    <div class="space-y-1">
-                        <div class="text-[9px] text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><i class="fa-solid fa-angle-right"></i> Spherical (Mag & Degrees)</div>
-                        <div class="flex gap-2">
-                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Mag|B|</span><span id="lbl-Bmag">${state.Bmag.toFixed(1)}</span></div><input type="range" min="0" max="8" step="0.1" value="${state.Bmag}" id="slider-Bmag" oninput="updateParam('Bmag', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-400"></div>
-                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>θ° Polar</span><span id="lbl-Btheta">${Math.round(state.Btheta)}</span></div><input type="range" min="0" max="180" step="1" value="${state.Btheta}" id="slider-Btheta" oninput="updateParam('Btheta', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-400"></div>
-                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>φ° Azim</span><span id="lbl-Bphi">${Math.round(state.Bphi)}</span></div><input type="range" min="-180" max="180" step="1" value="${state.Bphi}" id="slider-Bphi" oninput="updateParam('Bphi', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-400"></div>
-                        </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Bx</span><span id="lbl-Bx">${state.Bx.toFixed(1)}</span></div><input type="range" min="-5" max="5" step="0.2" value="${state.Bx}" oninput="updateParam('Bx', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-500"></div>
+                        <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>By</span><span id="lbl-By">${state.By.toFixed(1)}</span></div><input type="range" min="-5" max="5" step="0.2" value="${state.By}" oninput="updateParam('By', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-500"></div>
+                        <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Bz</span><span id="lbl-Bz">${state.Bz.toFixed(1)}</span></div><input type="range" min="-5" max="5" step="0.2" value="${state.Bz}" oninput="updateParam('Bz', this.value)" class="w-full h-1 bg-gray-700 rounded accent-blue-500"></div>
                     </div>
                 </div>
             `;
-        }
-
-        function buildUI() {
-            const panel = document.getElementById('inspector-content');
-            let html = '';
 
             if (state.mode === 'wire') {
-                html += getBFieldHTML();
                 html += `
                     <div class="bg-sandbox-900 p-2.5 rounded border border-emerald-900/40">
-                        <label class="text-[10px] uppercase font-bold text-emerald-400 block mb-2">Wire Parameters</label>
-                        <div>
+                        <label class="text-[10px] uppercase font-bold text-emerald-400 block mb-2">Wire Parameters & Position</label>
+                        <div class="mb-2">
                             <div class="flex justify-between text-[10px] text-gray-400"><span>Current I (Amps)</span><span id="lbl-wireCurrent">${state.wireCurrent.toFixed(1)}</span></div>
                             <input type="range" min="-10" max="10" step="0.5" value="${state.wireCurrent}" oninput="updateParam('wireCurrent', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500">
                         </div>
+                        <div class="space-y-1">
+                            <div class="text-[9px] text-gray-500 font-bold uppercase">Position (X, Y, Z)</div>
+                            <div class="flex gap-2">
+                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>X</span><span id="lbl-wireCoordX">${state.wirePos.x.toFixed(1)}</span></div><input id="slider-wireCoordX" type="range" min="-10" max="10" step="0.5" value="${state.wirePos.x}" oninput="updateParam('wireCoordX', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Y</span><span id="lbl-wireCoordY">${state.wirePos.y.toFixed(1)}</span></div><input id="slider-wireCoordY" type="range" min="-10" max="10" step="0.5" value="${state.wirePos.y}" oninput="updateParam('wireCoordY', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Z</span><span id="lbl-wireCoordZ">${state.wirePos.z.toFixed(1)}</span></div><input id="slider-wireCoordZ" type="range" min="-10" max="10" step="0.5" value="${state.wirePos.z}" oninput="updateParam('wireCoordZ', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                            </div>
+                        </div>
                     </div>
                 `;
-            } 
-            else if (state.mode === 'charge') {
-                html += getBFieldHTML();
+            } else if (state.mode === 'charge') {
                 html += `
                     <div class="bg-sandbox-900 p-2.5 rounded border border-emerald-900/40">
-                        <label class="text-[10px] uppercase font-bold text-emerald-400 block mb-2">Charge Injection Velocity (v)</label>
-                        <div class="space-y-1 mb-3">
-                            <div class="text-[9px] text-gray-500 font-bold uppercase mb-1">Cartesian (X, Y, Z)</div>
+                        <label class="text-[10px] uppercase font-bold text-emerald-400 block mb-2">Charge Initial Position & Velocity</label>
+                        <div class="space-y-2 mb-2">
+                            <div class="text-[9px] text-gray-500 font-bold uppercase">Position (X, Y, Z)</div>
                             <div class="flex gap-2">
-                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Vx</span><span id="lbl-chargeVx">${state.chargeVx.toFixed(1)}</span></div><input type="range" min="-10" max="10" step="0.5" value="${state.chargeVx}" id="slider-chargeVx" oninput="updateParam('chargeVx', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
-                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Vy</span><span id="lbl-chargeVy">${state.chargeVy.toFixed(1)}</span></div><input type="range" min="-10" max="10" step="0.5" value="${state.chargeVy}" id="slider-chargeVy" oninput="updateParam('chargeVy', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
-                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Vz</span><span id="lbl-chargeVz">${state.chargeVz.toFixed(1)}</span></div><input type="range" min="-10" max="10" step="0.5" value="${state.chargeVz}" id="slider-chargeVz" oninput="updateParam('chargeVz', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>X</span><span id="lbl-chargeCoordX">${state.chargePos.x.toFixed(1)}</span></div><input id="slider-chargeCoordX" type="range" min="-10" max="10" step="0.5" value="${state.chargePos.x}" oninput="updateParam('chargeCoordX', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Y</span><span id="lbl-chargeCoordY">${state.chargePos.y.toFixed(1)}</span></div><input id="slider-chargeCoordY" type="range" min="-10" max="10" step="0.5" value="${state.chargePos.y}" oninput="updateParam('chargeCoordY', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Z</span><span id="lbl-chargeCoordZ">${state.chargePos.z.toFixed(1)}</span></div><input id="slider-chargeCoordZ" type="range" min="-10" max="10" step="0.5" value="${state.chargePos.z}" oninput="updateParam('chargeCoordZ', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
                             </div>
                         </div>
-                        <div class="space-y-1">
-                            <div class="text-[9px] text-gray-500 font-bold uppercase mb-1 flex items-center gap-1"><i class="fa-solid fa-angle-right"></i> Spherical (Mag & Degrees)</div>
-                            <div class="flex gap-2">
-                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Mag|v|</span><span id="lbl-chargeVmag">${state.chargeVmag.toFixed(1)}</span></div><input type="range" min="0" max="15" step="0.5" value="${state.chargeVmag}" id="slider-chargeVmag" oninput="updateParam('chargeVmag', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-400"></div>
-                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>θ° Polar</span><span id="lbl-chargeVtheta">${Math.round(state.chargeVtheta)}</span></div><input type="range" min="0" max="180" step="1" value="${state.chargeVtheta}" id="slider-chargeVtheta" oninput="updateParam('chargeVtheta', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-400"></div>
-                                <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>φ° Azim</span><span id="lbl-chargeVphi">${Math.round(state.chargeVphi)}</span></div><input type="range" min="-180" max="180" step="1" value="${state.chargeVphi}" id="slider-chargeVphi" oninput="updateParam('chargeVphi', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-400"></div>
-                            </div>
+                        <div class="flex gap-2 mb-2">
+                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Vx</span><span id="lbl-chargeVx">${state.chargeVx.toFixed(1)}</span></div><input type="range" min="-10" max="10" step="0.5" value="${state.chargeVx}" oninput="updateParam('chargeVx', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Vy</span><span id="lbl-chargeVy">${state.chargeVy.toFixed(1)}</span></div><input type="range" min="-10" max="10" step="0.5" value="${state.chargeVy}" oninput="updateParam('chargeVy', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
+                            <div class="flex-1"><div class="flex justify-between text-[9px] text-gray-400"><span>Vz</span><span id="lbl-chargeVz">${state.chargeVz.toFixed(1)}</span></div><input type="range" min="-10" max="10" step="0.5" value="${state.chargeVz}" oninput="updateParam('chargeVz', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500"></div>
                         </div>
-                    </div>
-                    <div class="bg-sandbox-900 p-2.5 rounded border border-amber-900/40">
                         <div>
-                            <div class="flex justify-between text-[10px] text-gray-400 font-bold uppercase text-amber-400"><span>Charge (q)</span><span id="lbl-q">${state.q > 0 ? '+':''}${state.q} C</span></div>
+                            <div class="flex justify-between text-[10px] text-amber-400 font-bold uppercase"><span>Charge (q)</span><span id="lbl-q">${state.q > 0 ? '+':''}${state.q} C</span></div>
                             <input type="range" min="-5" max="5" step="1" value="${state.q}" oninput="updateParam('q', this.value)" class="w-full h-1 bg-gray-700 rounded accent-amber-500 mt-1">
-                            <div class="text-[9px] text-gray-500 mt-1 flex justify-between">
-                                <span class="text-blue-400">Negative (-)</span>
-                                <span class="text-gray-400">Neutral (0)</span>
-                                <span class="text-red-400">Positive (+)</span>
-                            </div>
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button id="btn-play" onclick="togglePlay()" class="w-full py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded font-bold transition flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-play"></i> Play
+                        <button id="btn-play" onclick="togglePlay()" class="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded font-bold transition flex items-center justify-center text-xs">
+                            <i class="fa-solid fa-play mr-1"></i> Play
                         </button>
-                        <button onclick="resetCharge()" class="w-12 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded font-bold transition flex items-center justify-center">
+                        <button onclick="resetCharge()" class="px-3 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded font-bold transition flex items-center justify-center text-xs" title="Reset">
                             <i class="fa-solid fa-rotate-left"></i>
                         </button>
                     </div>
                 `;
-            }
-            else if (state.mode === 'twowires') {
+            } else if (state.mode === 'twowires') {
                 html += `
-                    <div class="bg-sandbox-900 p-2.5 rounded border border-emerald-900/40">
-                        <label class="text-[10px] uppercase font-bold text-emerald-400 block mb-2">Wire Currents</label>
-                        <div class="space-y-3">
-                            <div>
-                                <div class="flex justify-between text-[10px] text-gray-400"><span>Wire 1 (Amps)</span><span id="lbl-i1">${state.i1.toFixed(1)}</span></div>
-                                <input type="range" min="-10" max="10" step="0.5" value="${state.i1}" oninput="updateParam('i1', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500">
-                            </div>
-                            <div>
-                                <div class="flex justify-between text-[10px] text-gray-400"><span>Wire 2 (Amps)</span><span id="lbl-i2">${state.i2.toFixed(1)}</span></div>
-                                <input type="range" min="-10" max="10" step="0.5" value="${state.i2}" oninput="updateParam('i2', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-sandbox-900 p-2.5 rounded border border-purple-900/40 mt-3">
+                    <div class="bg-sandbox-900 p-2.5 rounded border border-emerald-900/40 space-y-2">
+                        <label class="text-[10px] uppercase font-bold text-emerald-400 block mb-1">Parallel Wires</label>
                         <div>
-                            <div class="flex justify-between text-[10px] text-gray-400"><span>Separation Distance (d)</span><span id="lbl-distance">${state.distance.toFixed(1)}</span></div>
+                            <div class="flex justify-between text-[10px] text-gray-400"><span>Wire 1 Current (Amps)</span><span id="lbl-i1">${state.i1.toFixed(1)}</span></div>
+                            <input type="range" min="-10" max="10" step="0.5" value="${state.i1}" oninput="updateParam('i1', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] text-gray-400"><span>Wire 2 Current (Amps)</span><span id="lbl-i2">${state.i2.toFixed(1)}</span></div>
+                            <input type="range" min="-10" max="10" step="0.5" value="${state.i2}" oninput="updateParam('i2', this.value)" class="w-full h-1 bg-gray-700 rounded accent-emerald-500">
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[10px] text-gray-400"><span>Separation Distance</span><span id="lbl-distance">${state.distance.toFixed(1)}</span></div>
                             <input type="range" min="1" max="10" step="0.5" value="${state.distance}" oninput="updateParam('distance', this.value)" class="w-full h-1 bg-gray-700 rounded accent-purple-500">
                         </div>
                     </div>
@@ -759,7 +808,8 @@
             panel.innerHTML = html;
         }
 
-        window.setMode('wire');
+        // Initialize default scenario
+        loadPreset('cyclotron');
     </script>
 </body>
 </html>
